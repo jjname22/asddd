@@ -53,10 +53,7 @@ do
     local existingGUIs = {}
 
     local SPY_GUI_PATTERNS = {
-        "cobalt", "cobalt spy", "simplespy", "simple spy",
-        "dxspy", "spectro", "apeiron", "invoker", "sirhurt",
-        "remotespy", "remote spy", "darkdex", "dark dex",
-        "femboy", "femboy.hook", "spy", "hyper spy",
+        "cobalt"
     }
 
     local SPY_SCRIPT_PATTERNS = {
