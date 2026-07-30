@@ -1,3 +1,25 @@
+-- Scale the entire inventory UI (including toolbar) to fit any screen
+local function scaleInventoryUI()
+    if not manualInventoryFrame then return end
+
+    local viewportX, viewportY = workspace.CurrentCamera.ViewportSize.X, workspace.CurrentCamera.ViewportSize.Y
+    -- Choose a reference resolution – adjust to your liking (e.g., 1280x720 for mobile)
+    local refW, refH = 1280, 720
+    local scaleX = viewportX / refW
+    local scaleY = viewportY / refH
+    local scale = math.min(scaleX, scaleY)  -- use the smaller to avoid clipping
+
+    -- Keep within reasonable bounds
+    scale = math.max(0.5, math.min(1.5, scale))
+
+    local uiScale = manualInventoryFrame:FindFirstChild("ToolHubUIScale")
+    if not uiScale then
+        uiScale = Instance.new("UIScale")
+        uiScale.Name = "ToolHubUIScale"
+        uiScale.Parent = manualInventoryFrame
+    end
+    uiScale.Scale = scale
+end
 local DEBUG_LOGS = false
 local function dprint(...)
     if DEBUG_LOGS then
@@ -3188,8 +3210,8 @@ local function buildUnifiedHub()
     automationRoleRefs.giver = spreadModeButton
     automationRoleRefs.receiver = tradeModeButton
     capacityStatusLabel = Instance.new("TextLabel")
-    capacityStatusLabel.Size = UDim2.new(1, -452, 1, 0)
-    capacityStatusLabel.Position = UDim2.new(0, 306, 0, 0)
+    capacityStatusLabel.Size = UDim2.new(0, 0, 0, 0)
+    capacityStatusLabel.Position = UDim2.new(0, 0, 0, 0)
     capacityStatusLabel.BackgroundTransparency = 1
     capacityStatusLabel.Text = "Vault 0/0 | Inv 0/0"
     capacityStatusLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -4284,6 +4306,14 @@ end
 local startupStarted = false
 local backpackVisibleConnection
 local function beginStartupFromInventory()
+    local function beginStartupFromInventory()
+    -- ... existing code ...
+    buildUnifiedHub()
+    scaleInventoryUI()   -- <-- add this line
+    buildInventoryMover()
+    buildTradeExecutor()
+    -- ... rest ...
+end
     if startupStarted or isShutdown then
         return
     end
