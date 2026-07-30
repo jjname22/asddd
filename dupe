@@ -1,1 +1,4463 @@
-no
+
+-- ======================================
+-- SIMPLE HARDCODED KEY CHECK
+-- ======================================
+local key = "nigger"
+-- List of valid keys (add/remove any you want)
+local valid_keys = {
+    "X7F2-9K4M-3P8Q-1R5T",
+    "A3B6-C8D2-E9F4-G1H7",
+    "L5N9-P2Q6-R3S8-T7U4",
+}
+
+-- THIS is the variable you asked for. Change this to test different keys.
+
+-- Check if the key is valid
+local valid = false
+for _, v in ipairs(valid_keys) do
+    if v == key then
+        valid = true
+        break
+    end
+end
+
+-- Show result
+if valid then
+    print("✅ KEY IS VALID - Access granted")
+else
+    print("❌ KEY IS INVALID - Access denied")
+end
+local DEBUG_LOGS = false
+local function dprint(...)
+    if DEBUG_LOGS then
+        print("[TradeBridge]", ...)
+    end
+end
+
+_G.__ToolHubRunning = true
+local Players          = game:GetService("Players")
+local RS               = game:GetService("ReplicatedStorage")
+local UIS              = game:GetService("UserInputService")
+local HttpService      = game:GetService("HttpService")
+local RunService       = game:GetService("RunService")
+local Lighting         = game:GetService("Lighting")
+local TweenService     = game:GetService("TweenService")
+local LP               = Players.LocalPlayer
+local PlayerGui        = LP:WaitForChild("PlayerGui")
+
+-- Anti-Remote-Spy System
+do
+    local AntiSpy = {}
+    AntiSpy._initialized = false
+    AntiSpy._kicked = false
+
+    local SPY_KICK_MSG = "Remote Spy Detected"
+
+    local WHITELISTED_GUI_NAMES = {
+        ["MainHub"] = true,
+    }
+
+    local existingGUIs = {}
+
+    local SPY_GUI_PATTERNS = {
+        "cobalt", "cobalt spy", "simplespy", "simple spy",
+        "dxspy", "spectro", "apeiron", "invoker", "sirhurt",
+        "remotespy", "remote spy", "darkdex", "dark dex",
+        "femboy", "femboy.hook", "spy", "hyper spy",
+    }
+
+    local SPY_SCRIPT_PATTERNS = {
+        "cobalt", "cobalt spy", "simplespy", "simple spy",
+        "dxspy", "spectro", "apeiron", "invoker", "sirhurt",
+        "remotespy", "remote spy", "darkdex", "dark dex",
+        "femboy", "femboy.hook", "spy", "hyper spy",
+    }
+
+    local function isSpyGUI(gui)
+        if not gui or not gui:IsA("ScreenGui") then return false end
+        local name = string.lower(gui.Name or "")
+        for _, pattern in ipairs(SPY_GUI_PATTERNS) do
+            if name:find(pattern, 1, true) then
+                return true
+            end
+        end
+        return false
+    end
+
+    function AntiSpy:Kick()
+        if self._kicked then return end
+        self._kicked = true
+        pcall(function()
+            LP:Kick(SPY_KICK_MSG)
+        end)
+        task.wait(999999)
+    end
+
+    function AntiSpy:Init()
+        if self._initialized then return end
+        self._initialized = true
+
+        pcall(function()
+            local SPY_TEXT_PATTERNS = {
+                "cobalt", "cobalt spy", "simplespy", "simple spy",
+                "dxspy", "spectro", "apeiron", "invoker", "sirhurt",
+                "remotespy", "remote spy", "darkdex", "dark dex",
+                "dex explorer", "function tree", "femboy", "femboy.hook", "spy",
+                "block (i)", "block (n)", "clr logs", "copy code",
+                "copy remote", "run code", "get script", "function info",
+                "clr blacklist", "exclude (i)", "exclude (n)", "clr blocklist",
+                "copy as path", "hyper spy",
+            }
+
+            local function textHasSpySignature(text)
+                local lower = string.lower(text)
+                for _, pattern in ipairs(SPY_TEXT_PATTERNS) do
+                    if lower:find(pattern, 1, true) then
+                        return true
+                    end
+                end
+                if lower:find("outgoing", 1, true) and lower:find("incoming", 1, true) then
+                    return true
+                end
+                return false
+            end
+
+            local function checkNewChild(child)
+                if AntiSpy._kicked then return end
+                if not child then return end
+                if isSpyGUI(child) then
+                    AntiSpy:Kick()
+                    return
+                end
+                pcall(function()
+                    if child:IsA("ScreenGui") then
+                        local descendants = child:GetDescendants()
+                        for _, desc in ipairs(descendants) do
+                            if AntiSpy._kicked then return end
+                            if desc:IsA("TextLabel") or desc:IsA("TextButton") or desc:IsA("TextBox") then
+                                local ok, text = pcall(function() return desc.Text or "" end)
+                                if ok and text ~= "" and textHasSpySignature(text) then
+                                    AntiSpy:Kick()
+                                    return
+                                end
+                            end
+                            if desc:IsA("GuiObject") or desc:IsA("ImageLabel") or desc:IsA("ImageButton") then
+                                local ok, objName = pcall(function() return desc.Name or "" end)
+                                if ok and objName ~= "" and textHasSpySignature(objName) then
+                                    AntiSpy:Kick()
+                                    return
+                                end
+                            end
+                        end
+                    end
+                end)
+            end
+
+            local function scanEnvAndKick()
+                if AntiSpy._kicked then return end
+                pcall(function()
+                    if _G and type(_G) == "table" then
+                        local spyHits = 0
+                        for key, _ in pairs(_G) do
+                            local keyStr = string.lower(tostring(key))
+                            if keyStr:find("cobalt", 1, true) or keyStr:find("simplespy", 1, true)
+                                or keyStr:find("remotespy", 1, true) or keyStr:find("dxspy", 1, true)
+                                or keyStr:find("spectro", 1, true) or keyStr:find("darkdex", 1, true)
+                                or keyStr:find("apeiron", 1, true) or keyStr:find("invoker", 1, true)
+                                or keyStr:find("sirhurt", 1, true) then
+                                spyHits += 1
+                            end
+                        end
+                        if spyHits >= 2 then
+                            AntiSpy:Kick()
+                        end
+                    end
+                end)
+            end
+
+            -- Honeypot bait detection (multiple baits, stronger traps)
+            pcall(function()
+                local suspicious = 0
+
+                local function flagBait()
+                    if AntiSpy._kicked then return end
+                    suspicious += 1
+                    if suspicious >= 1 then
+                        AntiSpy:Kick()
+                    end
+                end
+
+                local function makeBait(name)
+                    return setmetatable({__baitName = name}, {
+                        __index = function(_, key)
+                            flagBait()
+                            return nil
+                        end,
+                        __tostring = function()
+                            flagBait()
+                            return ""
+                        end,
+                        __metatable = "protected",
+                    })
+                end
+
+                local baits = {makeBait("a"), makeBait("b"), makeBait("c")}
+
+                local remote = Instance.new("RemoteEvent")
+                remote.Name = "AntiSpyBait"
+                for _, bait in ipairs(baits) do
+                    pcall(function() remote:FireServer(bait) end)
+                end
+            end)
+
+            -- Detect hooked Instance.new (check every 5s, lightweight)
+            pcall(function()
+                local savedInstanceNew = Instance.new
+                task.spawn(function()
+                    while not isShutdown and not AntiSpy._kicked do
+                        task.wait(5)
+                        pcall(function()
+                            if Instance.new ~= savedInstanceNew then
+                                AntiSpy:Kick()
+                            end
+                        end)
+                    end
+                end)
+            end)
+
+            -- Detect __namecall tamper (debug.info source check + reference change check)
+            pcall(function()
+                task.spawn(function()
+                    task.wait(1)
+                    if isShutdown or AntiSpy._kicked then return end
+                    local savedNamecall = nil
+                    pcall(function()
+                        savedNamecall = getrawmetatable(game).__namecall
+                    end)
+                    while not isShutdown and not AntiSpy._kicked do
+                        task.wait(3)
+                        pcall(function()
+                            local mt = getrawmetatable(game)
+                            local func = mt.__namecall
+                            if not func then return end
+                            local ok, source = pcall(function() return debug.info(func, "s") end)
+                            if ok and source and source ~= "[C]" then
+                                AntiSpy:Kick()
+                                return
+                            end
+                            if savedNamecall and func ~= savedNamecall then
+                                AntiSpy:Kick()
+                                return
+                            end
+                        end)
+                    end
+                end)
+            end)
+
+            -- Snapshot existing GUIs (lightweight, just GetChildren, one-time)
+            pcall(function()
+                local containers = {}
+                pcall(function() table.insert(containers, PlayerGui) end)
+                pcall(function() table.insert(containers, game:GetService("CoreGui")) end)
+                pcall(function() if gethui then table.insert(containers, gethui()) end end)
+                for _, container in ipairs(containers) do
+                    pcall(function()
+                        for _, gui in ipairs(container:GetChildren()) do
+                            if gui:IsA("ScreenGui") then
+                                existingGUIs[gui] = true
+                            end
+                        end
+                    end)
+                end
+            end)
+
+            -- Kick if spy GUI exists at startup (lightweight, just GetChildren)
+            pcall(function()
+                local containers = {}
+                pcall(function() table.insert(containers, PlayerGui) end)
+                pcall(function() table.insert(containers, game:GetService("CoreGui")) end)
+                pcall(function() if gethui then table.insert(containers, gethui()) end end)
+                for _, container in ipairs(containers) do
+                    if AntiSpy._kicked then break end
+                    pcall(function()
+                        for _, gui in ipairs(container:GetChildren()) do
+                            if AntiSpy._kicked then break end
+                            checkNewChild(gui)
+                        end
+                    end)
+                end
+            end)
+
+            -- Event-based: scan new children as they appear (instant, no lag)
+            PlayerGui.ChildAdded:Connect(function(child)
+                if AntiSpy._kicked then return end
+                checkNewChild(child)
+            end)
+            pcall(function()
+                game:GetService("CoreGui").ChildAdded:Connect(function(child)
+                    if AntiSpy._kicked then return end
+                    checkNewChild(child)
+                end)
+            end)
+            pcall(function()
+                if gethui then
+                    gethui().ChildAdded:Connect(function(child)
+                        if AntiSpy._kicked then return end
+                        checkNewChild(child)
+                    end)
+                end
+            end)
+
+            -- Lightweight periodic check: env scan every 5s only
+            task.spawn(function()
+                while not isShutdown and not AntiSpy._kicked do
+                    task.wait(5)
+                    pcall(scanEnvAndKick)
+                end
+            end)
+        end)
+
+        print("[AntiSpy] Remote spy protection active")
+    end
+
+    AntiSpy.Enabled = true -- Set to false to disable anti-spy system
+    if AntiSpy.Enabled then
+        AntiSpy:Init()
+    else
+        print("[AntiSpy] Disabled")
+    end
+end
+
+local VIM              = nil
+pcall(function()
+    VIM = game:GetService("VirtualInputManager")
+end)
+local GuiParent        = PlayerGui
+pcall(function()
+    if gethui then
+        GuiParent = gethui()
+    end
+end)
+pcall(function()
+    if GuiParent == PlayerGui then
+        GuiParent = game:GetService("CoreGui")
+    end
+end)
+local Remotes           = RS:WaitForChild("Remotes")
+local TradeRemote       = Remotes:WaitForChild("Trade")
+local InventoryMoveRemote = Remotes:WaitForChild("InventoryMove")
+local NotificationEvent = Remotes:WaitForChild("NotificationMessage")
+local SpeedConfig = {
+    AfterInvite      = 0.1,
+    InvMoveRefillDelayAfterAccept = 0.1,
+    LowStackRefillWaitAfterDupeUpdate = 0.1,
+    ExtraUpdateYield = 0.05,
+    BeforeLock       = 0.15,
+    ReceiverBeforeLockMin = 0.2,
+    AfterLock        = 0.15,
+    AfterConfirm     = 0.1,
+    BetweenLoops     = 0.2,
+    BetweenInventoryMoves = 0.05,
+    RublesRefillWatcherInterval = 0.01,
+    VaultLoopInterval = 0.015,
+    BridgePollInterval = 0.05,
+    InvitePollInterval = 0.01,
+    InviteFolderRefreshInterval = 0.025,
+    PostConfirmResetDelay = 0.1,
+    TradeDupeResetDelay = 0.1,
+    GiverPostOfferRefreshDelay = 0.1,
+    GiverPostOfferSelectDelay = 0.05,
+    GiverVaultRefreshDelay = 0.05,
+    GiverVaultSelectDelay = 0.05,
+    GiverVaultSpreadDelay = 0.05,
+    InvMoveLockDelay     = 0.1,
+    InvMoveConfirmDelay  = 0.1,
+    InvMoveFallbackDelay = 0.15,
+    TradeDupeConfirmDelay = 0.1,
+}
+local SG = Instance.new("ScreenGui")
+SG.Name            = "MainHub"
+SG.ResetOnSpawn    = false
+SG.ZIndexBehavior  = Enum.ZIndexBehavior.Sibling
+SG.DisplayOrder    = 999999
+SG.IgnoreGuiInset  = true
+SG.Parent          = GuiParent
+local BootstrapFrame = Instance.new("Frame")
+BootstrapFrame.Name = "BootstrapFrame"
+BootstrapFrame.Size = UDim2.new(0, 280, 0, 40)
+BootstrapFrame.Position = UDim2.new(0.5, -140, 0, 24)
+BootstrapFrame.BackgroundColor3 = Color3.fromRGB(26, 28, 34)
+BootstrapFrame.BorderSizePixel = 0
+BootstrapFrame.Parent = SG
+local BootstrapLabel = Instance.new("TextLabel")
+BootstrapLabel.Size = UDim2.new(1, -12, 1, -8)
+BootstrapLabel.Position = UDim2.new(0, 6, 0, 4)
+BootstrapLabel.BackgroundTransparency = 1
+BootstrapLabel.Font = Enum.Font.Code
+BootstrapLabel.TextSize = 14
+BootstrapLabel.TextColor3 = Color3.fromRGB(240, 240, 242)
+BootstrapLabel.TextStrokeTransparency = 1
+BootstrapLabel.Text = "Loading"
+BootstrapLabel.Parent = BootstrapFrame
+local isShutdown = false
+local function shutdown()
+    if isShutdown then return end
+    isShutdown = true
+    _G.__ToolHubRunning = false
+    SG:Destroy()
+    dprint("🛑 Script shutdown — re-execute to restart.")
+end
+local function corner(parent, radius)
+    return nil
+end
+local function stroke(parent, color, thickness, transparency)
+    local s = Instance.new("UIStroke")
+    s.Color        = color or Color3.fromRGB(90, 140, 255)
+    s.Thickness    = thickness or 1.5
+    s.Transparency = 1
+    s.Parent       = parent
+    return s
+end
+
+local function titleBar(parent, title, titleColor, barColor)
+    local bar = Instance.new("Frame")
+    bar.Size            = UDim2.new(1, 0, 0, 46)
+    bar.BackgroundColor3 = barColor or Color3.fromRGB(26, 26, 38)
+    bar.BorderSizePixel = 0
+    bar.Parent          = parent
+    corner(bar, 10)
+    local fix = Instance.new("Frame")
+    fix.Size            = UDim2.new(1, 0, 0, 12)
+    fix.Position        = UDim2.new(0, 0, 1, -12)
+    fix.BackgroundColor3 = barColor or Color3.fromRGB(26, 26, 38)
+    fix.BorderSizePixel = 0
+    fix.Parent          = bar
+    local lbl = Instance.new("TextLabel")
+    lbl.Size              = UDim2.new(1, -50, 1, 0)
+    lbl.Position          = UDim2.new(0, 16, 0, 0)
+    lbl.BackgroundTransparency = 1
+    lbl.Text              = title
+    lbl.TextColor3        = titleColor or Color3.fromRGB(200, 215, 255)
+    lbl.Font              = Enum.Font.GothamBold
+    lbl.TextSize          = 15
+    lbl.TextXAlignment    = Enum.TextXAlignment.Left
+    lbl.Parent            = bar
+end
+local TopTheme = {
+    Background = Color3.fromRGB(12, 12, 14),
+    Background2 = Color3.fromRGB(10, 10, 12),
+    SectionTop = Color3.fromRGB(28, 27, 31),
+    SectionBg = Color3.fromRGB(10, 10, 12),
+    SectionBg2 = Color3.fromRGB(14, 14, 16),
+    Element = Color3.fromRGB(16, 16, 18),
+    Outline = Color3.fromRGB(25, 25, 28),
+    Accent = Color3.fromRGB(255, 50, 50),
+    AccentGrad = Color3.fromRGB(150, 0, 0),
+    Text = Color3.fromRGB(235, 235, 235),
+    Muted = Color3.fromRGB(142, 142, 150),
+    Success = Color3.fromRGB(84, 200, 120),
+}
+local automationState = {
+    role = "giver",
+    sessionCode = "",
+    enabled = false,
+    toggleVersion = 0,
+    lastSeenPartnerToggleVersion = 0,
+    status = "Backend not connected",
+    apiBaseUrl = "http://peleccos.ddns.net:3000/trade-bridge",
+    partnerName = "",
+    selectedItemName = "",
+}
+local automationStatusRefs = {}
+local automationRoleRefs = {}
+local automationToggleRenderers = {}
+local selectedInventoryEntry = nil
+local function toBase36(value)
+    local chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    local num = math.max(0, math.floor(tonumber(value) or 0))
+    if num == 0 then
+        return "0"
+    end
+    local out = ""
+    while num > 0 do
+        local index = (num % 36) + 1
+        out = chars:sub(index, index) .. out
+        num = math.floor(num / 36)
+    end
+    return out
+end
+local function randomBridgeChunk(length)
+    local chars = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"
+    local out = {}
+    for index = 1, length do
+        local pick = math.random(1, #chars)
+        out[index] = chars:sub(pick, pick)
+    end
+    return table.concat(out)
+end
+local function generateBridgeCode()
+    local gameTag = toBase36(game.GameId or 0)
+    gameTag = gameTag:sub(math.max(1, #gameTag - 3))
+    return string.format("LPBR-%s-%s-%s", gameTag, randomBridgeChunk(4), randomBridgeChunk(4))
+end
+local function ensureAutomationSessionCode()
+    if automationState.sessionCode == nil or automationState.sessionCode == "" then
+        automationState.sessionCode = generateBridgeCode()
+    end
+    return automationState.sessionCode
+end
+local function applyVerticalAccentGradient(parent)
+    local gradient = parent:FindFirstChild("ToolHubAccentGradient")
+    if not gradient then
+        gradient = Instance.new("UIGradient")
+        gradient.Name = "ToolHubAccentGradient"
+        gradient.Rotation = -115
+        gradient.Parent = parent
+    end
+    gradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, TopTheme.Accent),
+        ColorSequenceKeypoint.new(1, TopTheme.AccentGrad),
+    })
+    return gradient
+end
+local function setAutomationStatus(text, color)
+    automationState.status = text or automationState.status
+    for _, ref in ipairs(automationStatusRefs) do
+        if ref and ref.Parent then
+            ref.Text = automationState.status
+            if color then
+                ref.TextColor3 = color
+            end
+        end
+    end
+end
+local function setAutomationRole(roleName)
+    automationState.role = roleName
+    for name, ref in pairs(automationRoleRefs) do
+        if ref and ref.Parent then
+            local active = name == roleName
+            ref.BackgroundColor3 = active and TopTheme.Element or TopTheme.SectionTop
+            ref.TextColor3 = TopTheme.Text
+            local fill = ref:FindFirstChild("ToolHubRoleFill")
+            if fill then
+                fill.Visible = active
+            end
+        end
+    end
+end
+local function renderAutomationToggles()
+    for _, render in ipairs(automationToggleRenderers) do
+        pcall(render)
+    end
+end
+local publishBridgeState
+local ensureBridgeLoopStarted
+local selectFirstMatchingItem
+local collectAllInventoryFolders
+local getAllLocalItemsByName
+local function bindSessionBox(box)
+    if not box then
+        return
+    end
+    box.Text = ensureAutomationSessionCode()
+    box.FocusLost:Connect(function()
+        automationState.sessionCode = (box.Text or ""):gsub("^%s+", ""):gsub("%s+$", "")
+        if automationState.sessionCode ~= "" then
+            ensureBridgeLoopStarted()
+        end
+        if automationState.enabled and automationState.sessionCode ~= "" then
+            task.spawn(function()
+                local ok = pcall(publishBridgeState)
+                if ok then
+                    setAutomationStatus("Token published", TopTheme.Success)
+                else
+                    setAutomationStatus("Token API failed", TopTheme.Accent)
+                end
+            end)
+        end
+    end)
+end
+local bridgeThreadStarted = false
+local bridgeBusy = false
+local bridgeLastTradeAt = 0
+local giverTradeCycleCount = 0
+local GIVER_ITEM_OFFER_EVERY = 5
+local function isNextGiverItemOfferCycle()
+    return (giverTradeCycleCount + 1) >= GIVER_ITEM_OFFER_EVERY
+end
+local function getRequestFunction()
+    return request or http_request or (syn and syn.request) or (http and http.request)
+end
+local function bridgeRequest(method, path, bodyTable)
+    local req = getRequestFunction()
+    local url = automationState.apiBaseUrl .. path
+    local body = bodyTable and HttpService:JSONEncode(bodyTable) or nil
+    dprint("HTTP", method, url, body or "")
+    if req then
+        local response = req({
+            Url = url,
+            Method = method,
+            Headers = { ["Content-Type"] = "application/json" },
+            Body = body,
+        })
+        local statusCode = response and (response.StatusCode or response.Status or response.status_code) or "?"
+        local responseBody = response and (response.Body or response.body) or ""
+        dprint("HTTP response", tostring(statusCode), responseBody)
+        if responseBody == "" then
+            error("empty HTTP response status " .. tostring(statusCode) .. " from " .. url)
+        end
+        return HttpService:JSONDecode(responseBody)
+    end
+    if method == "GET" then
+        return HttpService:JSONDecode(game:HttpGet(url))
+    end
+    error("HTTP request function unavailable")
+end
+publishBridgeState = function()
+    local selectedName = automationState.selectedItemName
+    if selectedName == "" and selectedInventoryEntry and selectedInventoryEntry.item then
+        selectedName = selectedInventoryEntry.item.Name
+    end
+    local hasSelectedItem = false
+    if selectedName ~= "" then
+        hasSelectedItem = selectFirstMatchingItem and selectFirstMatchingItem(selectedName) == true
+    end
+    return bridgeRequest("POST", "/state", {
+        token = automationState.sessionCode,
+        userId = LP.UserId,
+        username = LP.Name,
+        role = automationState.role,
+        enabled = automationState.enabled == true,
+        toggleVersion = automationState.toggleVersion,
+        selectedItem = selectedName,
+        hasSelectedItem = hasSelectedItem,
+        placeId = game.PlaceId,
+        jobId = game.JobId,
+        updatedAt = os.time(),
+    })
+end
+local function pollBridgePair()
+    local token = HttpService:UrlEncode(automationState.sessionCode)
+    return bridgeRequest("GET", "/pair?token=" .. token .. "&userId=" .. tostring(LP.UserId), nil)
+end
+local function startAutomation()
+    local roleLabel = automationState.role == "giver" and "Giver" or "Receiver"
+    if automationState.sessionCode == "" then
+        setAutomationStatus("Session code required", TopTheme.Accent)
+        return
+    end
+    if not automationState.enabled then
+        setAutomationStatus("Bridge toggle is off", TopTheme.Accent)
+        return
+    end
+    setAutomationStatus(roleLabel .. " armed for relay", TopTheme.Success)
+    ensureBridgeLoopStarted()
+end
+local function createLibraryHeaderButton(parent, text, width, iconId)
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(0, width, 0, 32)
+    button.BackgroundColor3 = TopTheme.Element
+    button.BorderSizePixel = 0
+    button.Text = ""
+    button.AutoButtonColor = false
+    button.ClipsDescendants = true
+    button.Parent = parent
+    corner(button, 7)
+    stroke(button, TopTheme.Outline, 1, 0)
+    local fill = Instance.new("Frame")
+    fill.Name = "ToolHubRoleFill"
+    fill.Size = UDim2.new(0, 0, 1, 0)
+    fill.BackgroundColor3 = TopTheme.Accent
+    fill.BorderSizePixel = 0
+    fill.Visible = false
+    fill.Parent = button
+    corner(fill, 7)
+    applyVerticalAccentGradient(fill)
+    if iconId then
+        local icon = Instance.new("ImageLabel")
+        icon.Size = UDim2.new(0, 14, 0, 14)
+        icon.Position = UDim2.new(0, 10, 0.5, -7)
+        icon.BackgroundTransparency = 1
+        icon.Image = "rbxassetid://" .. tostring(iconId)
+        icon.BorderSizePixel = 0
+        icon.Parent = button
+        applyVerticalAccentGradient(icon)
+    end
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, iconId and -28 or 0, 1, 0)
+    label.Position = UDim2.new(0, iconId and 28 or 0, 0, 0)
+    label.BackgroundTransparency = 1
+    label.Text = text
+    label.Font = Enum.Font.GothamBold
+    label.TextSize = 11
+    label.TextColor3 = TopTheme.Text
+    label.TextStrokeTransparency = 1
+    label.Parent = button
+    return button
+end
+local function createSectionShell(parent, title, iconId, height)
+    local shell = Instance.new("Frame")
+    shell.Size = UDim2.new(1, 0, 0, height or 122)
+    shell.BackgroundColor3 = TopTheme.SectionBg
+    shell.BorderSizePixel = 0
+    shell.Parent = parent
+    corner(shell, 4)
+    stroke(shell, TopTheme.Outline, 1, 0)
+    local top = Instance.new("Frame")
+    top.Size = UDim2.new(1, 0, 0, 32)
+    top.BackgroundColor3 = TopTheme.SectionTop
+    top.BorderSizePixel = 0
+    top.Parent = shell
+    corner(top, 4)
+    local topFix = Instance.new("Frame")
+    topFix.Size = UDim2.new(1, 0, 0, 10)
+    topFix.Position = UDim2.new(0, 0, 1, -10)
+    topFix.BackgroundColor3 = TopTheme.SectionTop
+    topFix.BorderSizePixel = 0
+    topFix.Parent = top
+    local icon = Instance.new("ImageLabel")
+    icon.Size = UDim2.new(0, 16, 0, 16)
+    icon.Position = UDim2.new(0, 10, 0.5, -8)
+    icon.BackgroundTransparency = 1
+    icon.Image = "rbxassetid://" .. tostring(iconId or 6034509993)
+    icon.Parent = top
+    applyVerticalAccentGradient(icon)
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, -36, 1, 0)
+    label.Position = UDim2.new(0, 34, 0, 0)
+    label.BackgroundTransparency = 1
+    label.Text = title
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Font = Enum.Font.GothamBold
+    label.TextSize = 14
+    label.TextColor3 = TopTheme.Text
+    label.TextStrokeTransparency = 1
+    label.Parent = top
+    local body = Instance.new("Frame")
+    body.Size = UDim2.new(1, -16, 1, -44)
+    body.Position = UDim2.new(0, 8, 0, 38)
+    body.BackgroundTransparency = 1
+    body.Parent = shell
+    local layout = Instance.new("UIListLayout")
+    layout.Padding = UDim.new(0, 6)
+    layout.Parent = body
+    return shell, body
+end
+local invStatusLabel
+local invRunBtn
+local invPartnerBox
+local runInventoryMove
+local tradeDupePartnerBox
+local setupAutoTradeAcceptor
+local setupTradeDupeResponder
+local function setNavButtonState(button, active)
+    if not button then
+        return
+    end
+    if active then
+        button.BackgroundColor3 = Color3.fromRGB(214, 162, 87)
+        button.TextColor3 = Color3.fromRGB(18, 14, 10)
+    else
+        button.BackgroundColor3 = Color3.fromRGB(42, 35, 28)
+        button.TextColor3 = Color3.fromRGB(214, 200, 182)
+    end
+end
+local function showPage(pageName)
+    return pageName
+end
+local autoAcceptEnabled   = false
+local currentTradePartner = nil
+local vaultTransferring = false
+local vaultDropIndex = 0
+local lastBackpackRublesRefillAt = 0
+local backpackRublesRefillSentThisTrade = false
+local earliestBackpackRublesRefillAt = 0
+local FULL_RUBLES_STACK_AMOUNT = 1000000
+local ITEM_STACK_LIMITS = {
+    DuctTape = 8,
+    Bolts = 20,
+    Nuts = 20,
+    Nails = 20,
+    SuperGlue = 8,
+    CottonFabric = 10,
+    RipstopFabric = 10,
+    AramidFabric = 10,
+    LinenFabric = 10,
+    Gunpowder = 20,
+    SteelPipe = 10,
+    MetalChunks = 20,
+    Planks = 20,
+    OilCan = 5,
+    Fuze = 20,
+    WeaponParts = 3,
+    CopperCoil = 8,
+    AABattery = 8,
+    Smartphone = 6,
+    PH2Screwdriver = 4,
+    FlatScrewdriver = 4,
+    Wrench = 4,
+    Hammer = 4,
+    SolterStatue = 4,
+    Gold50g = 10,
+    GoldWatch = 4,
+    GoldenTicket = 4,
+    PMN2 = 2,
+    MON50 = 2,
+    F1 = 2,
+    Sandbag = 5,
+    Barricade = 3,
+    Rubles = 1000000,
+}
+local BackpackConfigs = {
+    Attak5 = {
+        invPath     = "Attak5",
+        maxSlots    = 36,
+        vaultMoveAt = 30,
+    },
+    WastelandBackpack = {
+        invPath     = "WastelandBackpack",
+        maxSlots    = 18,
+        vaultMoveAt = 12,
+    },
+}
+local BackpackOrder = { "Attak5", "WastelandBackpack" }
+local ActiveBackpackName = "Attak5"
+local function getActiveBackpackConfig()
+    return BackpackConfigs[ActiveBackpackName] or BackpackConfigs.Attak5
+end
+local function makeBackpackSlots(maxSlots)
+    local t = {}
+    for i = 1, maxSlots do
+        t[i] = "Backpack" .. i
+    end
+    return t
+end
+local function detectActiveBackpack()
+    local invFolder
+    local ok = pcall(function()
+        invFolder = RS.Players[LP.Name].Inventory
+    end)
+    if not ok or not invFolder then
+        return false
+    end
+    for _, backpackName in ipairs(BackpackOrder) do
+        local config = BackpackConfigs[backpackName]
+        if config and invFolder:FindFirstChild(config.invPath) then
+            ActiveBackpackName = backpackName
+            return true
+        end
+    end
+    return false
+end
+local inventorySystemsStarted = false
+local tradeResponderStarted = false
+local function ensureInventorySystemsStarted()
+    if inventorySystemsStarted then
+        return
+    end
+    inventorySystemsStarted = true
+    if invStatusLabel then
+        invStatusLabel.Text = "Waiting"
+        invStatusLabel.TextColor3 = Color3.fromRGB(130, 145, 180)
+    end
+    setupAutoTradeAcceptor()
+end
+local function ensureTradeResponderStarted()
+    if tradeResponderStarted then
+        return
+    end
+    tradeResponderStarted = true
+    setupTradeDupeResponder()
+end
+local manualRoot
+local manualInventoryFrame
+local manualControlPanel
+local manualControlScroll
+local manualTradePanel
+local manualTradeScroll
+local manualSlotMap = {}
+local manualGroupMap = {}
+local manualInventorySignature = nil
+local latestContainersByGear = {}
+local manualSlotLayoutMap = {}
+local latestItemsBySlot = {}
+selectedInventoryEntry = nil
+local spreadSelectedLabel
+local tradeSelectedLabel
+local capacityStatusLabel
+local vaultFullWarningLabel
+local vaultFullWarningRunning = false
+local vaultWasFull = false
+local capacityStatusLoopVersion = 0
+local CAPACITY_STATUS_INTERVAL = 2
+local scriptInterfaceVisible = true
+local function setScriptInterfaceVisible(visible)
+    scriptInterfaceVisible = visible == true
+    if manualRoot and manualRoot.Parent then
+        manualRoot.Visible = scriptInterfaceVisible
+    end
+    pcall(function()
+        UIS.MouseIconEnabled = true
+        UIS.MouseBehavior = Enum.MouseBehavior.Default
+    end)
+end
+UIS.InputBegan:Connect(function(input)
+    if isShutdown then
+        return
+    end
+    if input.KeyCode ~= Enum.KeyCode.Insert and input.KeyCode ~= Enum.KeyCode.RightShift then
+        return
+    end
+    if UIS:GetFocusedTextBox() then
+        return
+    end
+    setScriptInterfaceVisible(not scriptInterfaceVisible)
+end)
+local function normalizeInventoryTypeName(typeName)
+    local normalized = string.lower(tostring(typeName or ""))
+    if normalized == "chestrig" or normalized == "chest rig" then
+        return "ClothingChestRig", "ChestRig"
+    elseif normalized == "backpack" then
+        return "ClothingBackpack", "Backpack"
+    elseif normalized == "pants" then
+        return "ClothingPants", "Pants"
+    elseif normalized == "shirt" then
+        return "ClothingShirt", "Shirt"
+    end
+    return nil, nil
+end
+local function inferInventoryTypeFromContainerName(containerName)
+    local normalized = string.lower(tostring(containerName or ""))
+    if normalized:find("shirt", 1, true) then
+        return "ClothingShirt", "Shirt"
+    elseif normalized:find("pants", 1, true) then
+        return "ClothingPants", "Pants"
+    elseif normalized:find("backpack", 1, true) or normalized == "attak5" then
+        return "ClothingBackpack", "Backpack"
+    elseif normalized:find("rig", 1, true) or normalized:find("bandolier", 1, true) or normalized:find("chestrig", 1, true) then
+        return "ClothingChestRig", "ChestRig"
+    end
+    return nil, nil
+end
+local function getInventorySlotCount(attributes, preferredGearName)
+    local fallbackSlotCount
+    for attributeName, attributeValue in pairs(attributes or {}) do
+        local gearName = select(1, normalizeInventoryTypeName(attributeName))
+        local slotCount = tonumber(attributeValue)
+        if slotCount and slotCount > 0 then
+            if preferredGearName and gearName == preferredGearName then
+                return slotCount
+            end
+            fallbackSlotCount = fallbackSlotCount or slotCount
+        end
+    end
+    return fallbackSlotCount
+end
+local function collectInventoryContainers()
+    local containersByGear = {}
+    local playerFolder = RS:FindFirstChild("Players")
+    playerFolder = playerFolder and playerFolder:FindFirstChild(LP.Name)
+    local inventoryRoot = playerFolder and playerFolder:FindFirstChild("Inventory")
+    if not inventoryRoot then
+        return containersByGear, nil
+    end
+    for _, child in ipairs(inventoryRoot:GetChildren()) do
+        if child:IsA("ObjectValue") then
+            local inventoryFolder = child:FindFirstChild("Inventory")
+            if inventoryFolder then
+                local attributes = inventoryFolder:GetAttributes()
+                local gearName, prefix = inferInventoryTypeFromContainerName(child.Name)
+                local slotCount = getInventorySlotCount(attributes, gearName)
+                if gearName and prefix and slotCount and slotCount > 0 then
+                    containersByGear[gearName] = {
+                        containerName = child.Name,
+                        inventoryFolder = inventoryFolder,
+                        slotCount = slotCount,
+                        prefix = prefix,
+                        gearName = gearName,
+                    }
+                else
+                    for attributeName, attributeValue in pairs(attributes) do
+                        gearName, prefix = normalizeInventoryTypeName(attributeName)
+                        slotCount = tonumber(attributeValue)
+                        if gearName and prefix and slotCount and slotCount > 0 then
+                            containersByGear[gearName] = {
+                                containerName = child.Name,
+                                inventoryFolder = inventoryFolder,
+                                slotCount = slotCount,
+                                prefix = prefix,
+                                gearName = gearName,
+                            }
+                            break
+                        end
+                    end
+                end
+            end
+        end
+    end
+    return containersByGear, inventoryRoot
+end
+local function attachManualDrag(frame, handle)
+    if not frame or not handle then
+        return
+    end
+    local dragging = false
+    local dragStart
+    local startPosition
+    handle.Active = true
+    handle.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPosition = frame.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+    handle.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragStart = dragStart or input.Position
+        end
+    end)
+    UIS.InputChanged:Connect(function(input)
+        if not dragging then
+            return
+        end
+        if input.UserInputType ~= Enum.UserInputType.MouseMovement and input.UserInputType ~= Enum.UserInputType.Touch then
+            return
+        end
+        local delta = input.Position - dragStart
+        frame.Position = UDim2.new(
+            startPosition.X.Scale,
+            startPosition.X.Offset + delta.X,
+            startPosition.Y.Scale,
+            startPosition.Y.Offset + delta.Y
+        )
+    end)
+end
+local function createStatusProxy(parent, text)
+    local label = Instance.new("TextLabel")
+    label.Name = "StatusLabel"
+    label.Size = UDim2.new(1, -16, 0, 36)
+    label.BackgroundTransparency = 1
+    label.Text = text
+    label.TextWrapped = true
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.TextYAlignment = Enum.TextYAlignment.Top
+    label.Font = Enum.Font.Gotham
+    label.TextSize = 12
+    label.TextColor3 = TopTheme.Muted
+    label.TextStrokeTransparency = 1
+    label.Parent = parent
+    return label
+end
+local function createInputState(parent, labelText, defaultValue)
+    local row = Instance.new("Frame")
+    row.Name = labelText:gsub("%s+", "") .. "Row"
+    row.Size = UDim2.new(1, -12, 0, 54)
+    row.BackgroundTransparency = 1
+    row.Parent = parent
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, 0, 0, 16)
+    label.BackgroundTransparency = 1
+    label.Text = string.upper(labelText)
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Font = Enum.Font.GothamBold
+    label.TextSize = 10
+    label.TextColor3 = TopTheme.Muted
+    label.TextStrokeTransparency = 1
+    label.Parent = row
+    local box = Instance.new("TextBox")
+    box.Size = UDim2.new(1, 0, 0, 32)
+    box.Position = UDim2.new(0, 0, 0, 22)
+    box.BackgroundColor3 = TopTheme.Outline
+    box.BorderSizePixel = 0
+    box.ClearTextOnFocus = false
+    box.Text = defaultValue or ""
+    box.TextColor3 = TopTheme.Text
+    box.Font = Enum.Font.GothamMedium
+    box.PlaceholderColor3 = TopTheme.Muted
+    box.TextSize = 13
+    box.TextStrokeTransparency = 1
+    box.Parent = row
+    corner(box, 8)
+    stroke(box, TopTheme.Outline, 1, 0)
+    return box
+end
+local function createButton(parent, text, callback)
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(1, 0, 0, 32)
+    button.BackgroundColor3 = TopTheme.Element
+    button.BorderSizePixel = 0
+    button.Text = string.upper(text)
+    button.TextColor3 = TopTheme.Text
+    button.Font = Enum.Font.GothamBold
+    button.TextSize = 14
+    button.TextStrokeTransparency = 1
+    button.AutoButtonColor = false
+    button.ClipsDescendants = true
+    button.Parent = parent
+    corner(button, 4)
+    stroke(button, TopTheme.Outline, 1, 0)
+    local fill = Instance.new("Frame")
+    fill.Name = "ToolHubAccentFill"
+    fill.Size = UDim2.new(0, 0, 1, 0)
+    fill.BackgroundColor3 = TopTheme.Accent
+    fill.BorderSizePixel = 0
+    fill.Parent = button
+    corner(fill, 4)
+    applyVerticalAccentGradient(fill)
+    button.MouseEnter:Connect(function()
+        fill:TweenSize(UDim2.new(1, 0, 1, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.2, true)
+    end)
+    button.MouseLeave:Connect(function()
+        if button.Active then
+            fill:TweenSize(UDim2.new(0, 0, 1, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.2, true)
+        end
+    end)
+    if callback then
+        button.MouseButton1Click:Connect(callback)
+    end
+    return button
+end
+local function updateSelectedItemLabels()
+    local text = "Item: none"
+    if selectedInventoryEntry and selectedInventoryEntry.item then
+        local displayName = selectedInventoryEntry.item.Name
+        local itemValue = selectedInventoryEntry.item
+        if itemValue:IsA("ObjectValue") and itemValue.Value then
+            itemValue = itemValue.Value
+        end
+        local itemProperties = itemValue and itemValue:FindFirstChild("ItemProperties")
+        if itemProperties then
+            displayName = itemProperties:GetAttribute("CallSign") or itemValue.Name or displayName
+        elseif itemValue then
+            displayName = itemValue.Name
+        end
+        text = "Item: " .. displayName
+    end
+    if spreadSelectedLabel then
+        spreadSelectedLabel.Text = text
+    end
+    if tradeSelectedLabel then
+        tradeSelectedLabel.Text = text
+    end
+end
+local function applySelectedSlotVisuals()
+    for slotName, slotFrame in pairs(manualSlotMap) do
+        local selectStroke = slotFrame:FindFirstChild("ToolHubSelectStroke")
+        if not selectStroke then
+            selectStroke = Instance.new("UIStroke")
+            selectStroke.Name = "ToolHubSelectStroke"
+            selectStroke.Color = Color3.fromRGB(196, 56, 72)
+            selectStroke.Thickness = 2
+            selectStroke.Transparency = 1
+            selectStroke.Parent = slotFrame
+        end
+        selectStroke.Transparency = (selectedInventoryEntry and selectedInventoryEntry.slotName == slotName) and 0 or 1
+    end
+end
+local function selectInventoryEntry(slotName)
+    selectedInventoryEntry = latestItemsBySlot[slotName]
+    if selectedInventoryEntry and selectedInventoryEntry.item then
+        automationState.selectedItemName = selectedInventoryEntry.item.Name
+    end
+    updateSelectedItemLabels()
+    applySelectedSlotVisuals()
+end
+local function ensureSlotSelectionButton(slotFrame, slotName)
+    local button = slotFrame:FindFirstChild("ToolHubSelectButton")
+    if button then
+        return
+    end
+    button = Instance.new("TextButton")
+    button.Name = "ToolHubSelectButton"
+    button.Text = ""
+    button.AutoButtonColor = false
+    button.BackgroundTransparency = 1
+    button.BorderSizePixel = 0
+    button.Size = UDim2.new(1, 0, 1, 0)
+    button.ZIndex = 120
+    button.Parent = slotFrame
+    button.MouseButton1Click:Connect(function()
+        if latestItemsBySlot[slotName] then
+            selectInventoryEntry(slotName)
+        end
+    end)
+end
+local function createToggle(parent, text, initial, callback)
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(1, -12, 0, 30)
+    button.BorderSizePixel = 0
+    button.Font = Enum.Font.GothamBold
+    button.TextSize = 11
+    button.Parent = parent
+    corner(button, 8)
+    stroke(button, TopTheme.Outline, 1, 0)
+    local state = initial and true or false
+    local function render()
+        button.Text = (state and "ON  " or "OFF  ") .. string.upper(text)
+        button.TextColor3 = state and TopTheme.Text or TopTheme.Muted
+        button.BackgroundColor3 = state and TopTheme.SectionTop or TopTheme.Element
+        button.TextStrokeTransparency = 1
+    end
+    button.MouseButton1Click:Connect(function()
+        state = not state
+        render()
+        if callback then
+            callback(state)
+        end
+    end)
+    render()
+    return button
+end
+local function createCompactInput(parent, labelText, defaultValue)
+    local row = Instance.new("Frame")
+    row.Size = UDim2.new(1, 0, 0, 30)
+    row.BackgroundTransparency = 1
+    row.Parent = parent
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(0, 84, 1, 0)
+    label.BackgroundTransparency = 1
+    label.Text = string.upper(labelText)
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Font = Enum.Font.GothamBold
+    label.TextSize = 10
+    label.TextColor3 = TopTheme.Muted
+    label.TextStrokeTransparency = 1
+    label.Parent = row
+    local box = Instance.new("TextBox")
+    box.Size = UDim2.new(1, -88, 1, 0)
+    box.Position = UDim2.new(0, 88, 0, 0)
+    box.BackgroundColor3 = TopTheme.Outline
+    box.BorderSizePixel = 0
+    box.ClearTextOnFocus = false
+    box.Text = defaultValue or ""
+    box.TextColor3 = TopTheme.Text
+    box.Font = Enum.Font.GothamMedium
+    box.TextSize = 11
+    box.TextStrokeTransparency = 1
+    box.Parent = row
+    corner(box, 8)
+    stroke(box, TopTheme.Outline, 1, 0)
+    return box
+end
+local function createCompactStatus(parent, text)
+    local card = Instance.new("Frame")
+    card.Size = UDim2.new(1, 0, 0, 28)
+    card.BackgroundColor3 = TopTheme.Element
+    card.BorderSizePixel = 0
+    card.Parent = parent
+    corner(card, 8)
+    stroke(card, TopTheme.Outline, 1, 0)
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, -16, 1, 0)
+    label.Position = UDim2.new(0, 12, 0, 0)
+    label.BackgroundTransparency = 1
+    label.Text = text
+    label.TextWrapped = false
+    label.TextTruncate = Enum.TextTruncate.AtEnd
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.TextYAlignment = Enum.TextYAlignment.Center
+    label.Font = Enum.Font.Gotham
+    label.TextSize = 11
+    label.TextColor3 = TopTheme.Muted
+    label.TextStrokeTransparency = 1
+    label.Parent = card
+    return label
+end
+local function getNearestOtherPlayer()
+    local localCharacter = LP.Character
+    local localRoot = localCharacter and localCharacter:FindFirstChild("HumanoidRootPart")
+    local nearestPlayer
+    local nearestDistance
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LP then
+            local character = player.Character
+            local root = character and character:FindFirstChild("HumanoidRootPart")
+            if localRoot and root then
+                local distance = (localRoot.Position - root.Position).Magnitude
+                if not nearestDistance or distance < nearestDistance then
+                    nearestDistance = distance
+                    nearestPlayer = player
+                end
+            elseif not nearestPlayer then
+                nearestPlayer = player
+            end
+        end
+    end
+    return nearestPlayer
+end
+local function createPlayerDropdown(parent, labelText)
+    local state = { Text = "" }
+    local row = Instance.new("Frame")
+    row.Size = UDim2.new(1, 0, 0, 30)
+    row.BackgroundTransparency = 1
+    row.Parent = parent
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(0, 70, 1, 0)
+    label.BackgroundTransparency = 1
+    label.Text = string.upper(labelText)
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Font = Enum.Font.GothamBold
+    label.TextSize = 10
+    label.TextColor3 = TopTheme.Muted
+    label.TextStrokeTransparency = 1
+    label.Parent = row
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(0, 118, 1, 0)
+    button.Position = UDim2.new(0, 76, 0, 0)
+    button.BackgroundColor3 = TopTheme.Element
+    button.BorderSizePixel = 0
+    button.TextColor3 = TopTheme.Text
+    button.Font = Enum.Font.GothamBold
+    button.TextSize = 12
+    button.Text = "Get Nearest"
+    button.TextStrokeTransparency = 1
+    button.Parent = row
+    corner(button, 4)
+    stroke(button, TopTheme.Outline, 1, 0)
+    local selectedLabel = Instance.new("TextLabel")
+    selectedLabel.Size = UDim2.new(1, -216, 1, 0)
+    selectedLabel.Position = UDim2.new(0, 216, 0, 0)
+    selectedLabel.BackgroundTransparency = 1
+    selectedLabel.Text = "NONE"
+    selectedLabel.TextXAlignment = Enum.TextXAlignment.Left
+    selectedLabel.Font = Enum.Font.GothamMedium
+    selectedLabel.TextSize = 10
+    selectedLabel.TextColor3 = TopTheme.Text
+    selectedLabel.TextTruncate = Enum.TextTruncate.AtEnd
+    selectedLabel.TextStrokeTransparency = 1
+    selectedLabel.Parent = row
+    local function setSelected(name)
+        state.Text = name or ""
+        selectedLabel.Text = state.Text ~= "" and state.Text or "None"
+    end
+    button.MouseButton1Click:Connect(function()
+        local nearestPlayer = getNearestOtherPlayer()
+        if nearestPlayer then
+            setSelected(nearestPlayer.Name)
+        else
+            setSelected("")
+        end
+    end)
+    state.Button = button
+    state.Row = row
+    state.Label = selectedLabel
+    state.SetSelected = setSelected
+    return state
+end 
+local function findTemplateInventoryFrame()
+    local mainGui = PlayerGui:FindFirstChild("MainGui")
+    if not mainGui then
+        return nil
+    end
+    local mainFrame = mainGui:FindFirstChild("MainFrame")
+    local backpackFrame = mainFrame and mainFrame:FindFirstChild("BackpackFrame")
+    return backpackFrame and backpackFrame:FindFirstChild("InventoryFrame") or nil
+end
+local function waitForTemplateInventoryFrame(timeoutSeconds)
+    local deadline = os.clock() + (timeoutSeconds or 6)
+    local template = findTemplateInventoryFrame()
+    while not template and os.clock() < deadline do
+        task.wait(0.1)
+        template = findTemplateInventoryFrame()
+    end
+    return template
+end
+local function getBackpackFrame()
+    local mainGui = PlayerGui:FindFirstChild("MainGui")
+    local mainFrame = mainGui and mainGui:FindFirstChild("MainFrame")
+    return mainFrame and mainFrame:FindFirstChild("BackpackFrame") or nil
+end
+local function isBackpackOpen()
+    local backpackFrame = getBackpackFrame()
+    return backpackFrame and backpackFrame.Visible == true or false
+end
+local function tryForceOpenInventory()
+    if VIM then
+        pcall(function()
+            VIM:SendKeyEvent(true, Enum.KeyCode.Tab, false, game)
+            task.wait(0.03)
+            VIM:SendKeyEvent(false, Enum.KeyCode.Tab, false, game)
+        end)
+    end
+end
+local tradeMenuHideUntil = 0
+local tradeMenuHiderRunning = false
+local TRADE_MENU_RENDER_BIND = "ToolHubHideGameTradeMenu"
+local suppressTradeNotifsAtStartup = true
+local function shouldKeepTradeMenuSuppressed()
+    return automationState.enabled == true or suppressTradeNotifsAtStartup == true
+end
+local function hideGameTradeMenuOnce()
+    if not shouldKeepTradeMenuSuppressed() then
+        return
+    end
+    local mainGui = PlayerGui:FindFirstChild("MainGui")
+    if not mainGui then
+        return
+    end
+    pcall(function()
+        local inventoryBlur = Lighting:FindFirstChild("InventoryBlur")
+        if inventoryBlur then
+            inventoryBlur.Size = 0
+        end
+    end)
+    local mainFrame = mainGui:FindFirstChild("MainFrame")
+    local interactionFrame = mainFrame and mainFrame:FindFirstChild("InteractionFrame")
+    local topBar = interactionFrame and interactionFrame:FindFirstChild("TopBar")
+    local notificationMessage = topBar and topBar:FindFirstChild("NotificationMessage")
+    if notificationMessage and notificationMessage:IsA("GuiObject") then
+        notificationMessage.Visible = false
+    end
+    local backpackFrame = mainFrame and mainFrame:FindFirstChild("BackpackFrame")
+    if backpackFrame then
+        local tradeInfo = backpackFrame:FindFirstChild("TradeInfo")
+        local trading = backpackFrame:FindFirstChild("Trading")
+        local inventoryFrame = backpackFrame:FindFirstChild("InventoryFrame")
+        if tradeInfo and tradeInfo:IsA("GuiObject") then
+            tradeInfo.Visible = false
+        end
+        if trading and trading:IsA("GuiObject") then
+            trading.Visible = false
+        end
+        local isTradeActive = false
+        pcall(function()
+            local myPlayer = RS.Players:FindFirstChild(LP.Name)
+            local status = myPlayer and myPlayer:FindFirstChild("Status")
+            local journey = status and status:FindFirstChild("Journey")
+            local tradingFolder = journey and journey:FindFirstChild("Trading")
+            local tradingWith = tradingFolder and tradingFolder:GetAttribute("TradingWith")
+            isTradeActive = tradingWith ~= nil and tradingWith ~= ""
+        end)
+        if isTradeActive and inventoryFrame and inventoryFrame:IsA("GuiObject") then
+            inventoryFrame.Visible = false
+        end
+    end
+    local tradeSelected = mainGui:FindFirstChild("TradeSelected")
+    if tradeSelected then
+        for _, child in ipairs(tradeSelected:GetChildren()) do
+            if child:IsA("GuiObject") then
+                child.Visible = false
+            elseif child:IsA("ObjectValue") and child.Value and child.Value:IsA("GuiObject") then
+                child.Value.Visible = false
+            end
+        end
+    end
+end
+local function keepTradeMenuHidden(duration)
+    if not shouldKeepTradeMenuSuppressed() then
+        return
+    end
+    tradeMenuHideUntil = math.max(tradeMenuHideUntil, os.clock() + (duration or 2))
+    hideGameTradeMenuOnce()
+    if tradeMenuHiderRunning then
+        return
+    end
+    tradeMenuHiderRunning = true
+    RunService:BindToRenderStep(TRADE_MENU_RENDER_BIND, Enum.RenderPriority.Last.Value + 1000, function()
+        if isShutdown or (os.clock() >= tradeMenuHideUntil and not shouldKeepTradeMenuSuppressed()) then
+            pcall(function()
+                RunService:UnbindFromRenderStep(TRADE_MENU_RENDER_BIND)
+            end)
+            tradeMenuHiderRunning = false
+            return
+        end
+        hideGameTradeMenuOnce()
+    end)
+end
+local function createInventorySlot(parent, slotName)
+    local slotFrame = Instance.new("Frame")
+    slotFrame.Name = slotName
+    slotFrame.Size = UDim2.new(0, 74, 0, 74)
+    slotFrame.BackgroundColor3 = Color3.fromRGB(49, 49, 49)
+    slotFrame.BorderSizePixel = 0
+    slotFrame.Parent = parent
+    corner(slotFrame, 7)
+
+    local itemName = Instance.new("TextLabel")
+    itemName.Name = "ItemName"
+    itemName.Size = UDim2.new(0.925, 0, 0.175, 0)
+    itemName.Position = UDim2.new(0.05, 0, 0.96, 0)
+    itemName.AnchorPoint = Vector2.new(0, 1)
+    itemName.BackgroundTransparency = 1
+    itemName.Text = ""
+    itemName.TextColor3 = Color3.new(1, 1, 1)
+    itemName.Font = Enum.Font.Highway
+    itemName.TextSize = 14
+    itemName.TextWrapped = true
+    itemName.TextXAlignment = Enum.TextXAlignment.Left
+    itemName.Parent = slotFrame
+
+    local item = Instance.new("ObjectValue")
+    item.Name = "Item"
+    item.Parent = slotFrame
+
+    local amount = Instance.new("TextLabel")
+    amount.Name = "Amount"
+    amount.Size = UDim2.new(1, 0, 0.2, 0)
+    amount.Position = UDim2.new(0.05, 0, 0.04, 0)
+    amount.BackgroundTransparency = 1
+    amount.Text = ""
+    amount.TextColor3 = Color3.new(1, 1, 1)
+    amount.Font = Enum.Font.Highway
+    amount.TextSize = 14
+    amount.TextWrapped = true
+    amount.TextXAlignment = Enum.TextXAlignment.Left
+    amount.Parent = slotFrame
+
+    local hotKey = Instance.new("TextLabel")
+    hotKey.Name = "HotKey"
+    hotKey.Size = UDim2.new(0.2, 0, 0.2, 0)
+    hotKey.Position = UDim2.new(1, 0, 0, 0)
+    hotKey.AnchorPoint = Vector2.new(1, 0)
+    hotKey.BackgroundColor3 = Color3.fromRGB(162, 0, 2)
+    hotKey.BackgroundTransparency = 0.25
+    hotKey.BorderSizePixel = 0
+    hotKey.Text = ""
+    hotKey.TextColor3 = Color3.new(1, 1, 1)
+    hotKey.Font = Enum.Font.Highway
+    hotKey.TextSize = 14
+    hotKey.Visible = false
+    hotKey.Parent = slotFrame
+    local hotKeyCorner = Instance.new("UICorner")
+    hotKeyCorner.CornerRadius = UDim.new(0.4, 0)
+    hotKeyCorner.Parent = hotKey
+
+    local slotStroke = Instance.new("UIStroke")
+    slotStroke.Color = Color3.new(0, 0, 0)
+    slotStroke.Thickness = 2
+    slotStroke.Transparency = 0.75
+    slotStroke.Parent = slotFrame
+
+    local dropShadow = Instance.new("Frame")
+    dropShadow.Name = "DropShadow"
+    dropShadow.AnchorPoint = Vector2.new(0.5, 0.5)
+    dropShadow.Position = UDim2.new(0.5, 0, 0.525, 0)
+    dropShadow.Size = UDim2.new(1, 0, 1.05, 0)
+    dropShadow.BackgroundColor3 = Color3.new(0, 0, 0)
+    dropShadow.BackgroundTransparency = 0.75
+    dropShadow.BorderSizePixel = 0
+    dropShadow.ZIndex = 1
+    dropShadow.Parent = slotFrame
+    local dropShadowCorner = Instance.new("UICorner")
+    dropShadowCorner.CornerRadius = UDim.new(0.1, 0)
+    dropShadowCorner.Parent = dropShadow
+
+    local imageLabel = Instance.new("ImageLabel")
+    imageLabel.Name = "ImageLabel"
+    imageLabel.AnchorPoint = Vector2.new(0.5, 0.5)
+    imageLabel.Position = UDim2.new(0.5, 0, 0.5, 0)
+    imageLabel.Size = UDim2.new(1, 0, 1, 0)
+    imageLabel.BackgroundTransparency = 1
+    imageLabel.BorderSizePixel = 0
+    imageLabel.Image = ""
+    imageLabel.ScaleType = Enum.ScaleType.Stretch
+    imageLabel.ZIndex = 2
+    imageLabel.Parent = slotFrame
+
+    local preImageLabel = Instance.new("ImageLabel")
+    preImageLabel.Name = "PreImageLabel"
+    preImageLabel.AnchorPoint = Vector2.new(0.5, 0.5)
+    preImageLabel.Position = UDim2.new(0.5, 0, 0.5, 0)
+    preImageLabel.Size = UDim2.new(0.8, 0, 0.8, 0)
+    preImageLabel.BackgroundTransparency = 1
+    preImageLabel.BorderSizePixel = 0
+    preImageLabel.Image = ""
+    preImageLabel.ImageTransparency = 0.5
+    preImageLabel.Visible = true
+    preImageLabel.ScaleType = Enum.ScaleType.Stretch
+    preImageLabel.ZIndex = 2
+    preImageLabel.Parent = slotFrame
+
+    local durability = Instance.new("Frame")
+    durability.Name = "Durability"
+    durability.AnchorPoint = Vector2.new(0.5, 1)
+    durability.Position = UDim2.new(0.5, 0, 1, 0)
+    durability.Size = UDim2.new(0.9, 0, 0.025, 0)
+    durability.BackgroundColor3 = Color3.fromRGB(49, 49, 49)
+    durability.BorderSizePixel = 0
+    durability.ClipsDescendants = true
+    durability.Visible = false
+    durability.ZIndex = 2
+    durability.Parent = slotFrame
+    local durabilityBar = Instance.new("Frame")
+    durabilityBar.Name = "Bar"
+    durabilityBar.AnchorPoint = Vector2.new(0, 0.5)
+    durabilityBar.Position = UDim2.new(0, 0, 0.5, 0)
+    durabilityBar.Size = UDim2.new(0.917, 0, 1, 0)
+    durabilityBar.BackgroundColor3 = Color3.fromRGB(206, 206, 206)
+    durabilityBar.BackgroundTransparency = 0.1
+    durabilityBar.BorderSizePixel = 0
+    durabilityBar.ZIndex = 3
+    durabilityBar.Parent = durability
+    local originalDurabilityBar = Instance.new("Frame")
+    originalDurabilityBar.Name = "OriginalDurabilityBar"
+    originalDurabilityBar.AnchorPoint = Vector2.new(1, 0.5)
+    originalDurabilityBar.Position = UDim2.new(1, 0, 0.5, 0)
+    originalDurabilityBar.Size = UDim2.new(0, 0, 1, 0)
+    originalDurabilityBar.BackgroundColor3 = Color3.fromRGB(197, 60, 62)
+    originalDurabilityBar.BackgroundTransparency = 0.1
+    originalDurabilityBar.BorderSizePixel = 0
+    originalDurabilityBar.ZIndex = 2
+    originalDurabilityBar.Parent = durability
+
+    local clickDetector = Instance.new("ImageButton")
+    clickDetector.Name = "ClickDetector"
+    clickDetector.AnchorPoint = Vector2.new(0.5, 0.5)
+    clickDetector.Position = UDim2.new(0.5, 0, 0.5, 0)
+    clickDetector.Size = UDim2.new(1.1, 0, 1.1, 0)
+    clickDetector.BackgroundTransparency = 1
+    clickDetector.Image = ""
+    clickDetector.ZIndex = 2
+    clickDetector.Parent = slotFrame
+
+    local fastLootIcon = Instance.new("ImageLabel")
+    fastLootIcon.Name = "FastLootIcon"
+    fastLootIcon.Size = UDim2.new(1, 0, 1, 0)
+    fastLootIcon.BackgroundTransparency = 1
+    fastLootIcon.Image = ""
+    fastLootIcon.ZIndex = 2
+    fastLootIcon.Parent = slotFrame
+
+    local moddingBoxTarget = Instance.new("ObjectValue")
+    moddingBoxTarget.Name = "ModdingBoxTarget"
+    moddingBoxTarget.Parent = slotFrame
+
+    return slotFrame
+end
+local function createInventoryGroup(parent, groupName, titleText, prefix, slotCount, columns, heightScale, topPaddingScale, cellPaddingXScale, visible)
+    local group = Instance.new("Frame")
+    group.Name = groupName
+    group.Size = UDim2.new(1, 0, heightScale, 0)
+    group.BackgroundTransparency = 1
+    group.Visible = visible ~= false
+    group.Parent = parent
+
+    local slotType = Instance.new("TextLabel")
+    slotType.Name = "SlotType"
+    slotType.Size = UDim2.new(0.9177, 0, 0.13988, 0)
+    slotType.Position = UDim2.new(0.01065, 0, 0.04548, 0)
+    slotType.BackgroundTransparency = 1
+    slotType.Text = titleText
+    slotType.TextColor3 = Color3.new(1, 1, 1)
+    slotType.Font = Enum.Font.Highway
+    slotType.TextSize = 14
+    slotType.TextWrapped = true
+    slotType.TextXAlignment = Enum.TextXAlignment.Left
+    slotType.Parent = group
+
+    local holder = Instance.new("Frame")
+    holder.Name = "Frame"
+    holder.Size = UDim2.new(0.9439, 0, 0.7653, 0)
+    holder.Position = UDim2.new(0.016, 0, 0.25, 0)
+    holder.BackgroundTransparency = 1
+    holder.Parent = group
+
+    local layout = Instance.new("UIGridLayout")
+    layout.CellSize = UDim2.new(0.15, 0, 0.666, 0)
+    layout.CellPadding = UDim2.new(cellPaddingXScale or 0.02, 0, 0.08, 0)
+    layout.FillDirection = Enum.FillDirection.Horizontal
+    layout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+    layout.VerticalAlignment = Enum.VerticalAlignment.Top
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    layout.Parent = holder
+
+    for i = 1, slotCount do
+        local slot = createInventorySlot(holder, prefix .. i)
+        slot.LayoutOrder = i
+    end
+
+    return group
+end
+local function buildInventoryFrameFromBlueprint(parent)
+    return nil
+end
+local function clearScripts(instance)
+    for _, descendant in ipairs(instance:GetDescendants()) do
+        if descendant:IsA("LocalScript") or descendant:IsA("Script") then
+            descendant:Destroy()
+        end
+    end
+end
+local function forceVisibleRecursive(root)
+    for _, descendant in ipairs(root:GetDescendants()) do
+        if descendant:IsA("GuiObject") then
+            pcall(function()
+                descendant.Visible = true
+            end)
+        end
+    end
+    if root:IsA("GuiObject") then
+        pcall(function()
+            root.Visible = true
+        end)
+    end
+end
+local function mapSlotFrames(frame)
+    manualSlotMap = {}
+    manualGroupMap = {}
+    manualSlotLayoutMap = {}
+    local scrolling = frame:FindFirstChild("Inventory", true)
+    scrolling = scrolling and scrolling:FindFirstChild("ScrollingFrame")
+    if not scrolling then
+        return
+    end
+    local groups = {
+        { holder = "ClothingBackpack", prefix = "Backpack", max = 36, gearName = "ClothingBackpack" },
+        { holder = "ClothingChestRig", prefix = "ChestRig", max = 12, gearName = "ClothingChestRig" },
+        { holder = "ClothingPants", prefix = "Pants", max = 6, gearName = "ClothingPants" },
+        { holder = "ClothingShirt", prefix = "Shirt", max = 6, gearName = "ClothingShirt" },
+    }
+    for _, group in ipairs(groups) do
+        local holder = scrolling:FindFirstChild(group.holder)
+        local slotParent = holder and holder:FindFirstChild("Frame")
+        if slotParent then
+            local slots = {}
+            for i = 1, group.max do
+                local slotName = group.prefix .. i
+                local slotFrame = slotParent:FindFirstChild(slotName)
+                if slotFrame then
+                    manualSlotMap[slotName] = slotFrame
+                    manualSlotLayoutMap[slotName] = {
+                        size = slotFrame.Size,
+                        position = slotFrame.Position,
+                    }
+                    ensureSlotSelectionButton(slotFrame, slotName)
+                    slots[i] = slotFrame
+                end
+            end
+            local titleLabel
+            for _, child in ipairs(holder:GetChildren()) do
+                if child:IsA("TextLabel") then
+                    titleLabel = child
+                    break
+                end
+            end
+            local columns = 0
+            local firstY
+            for _, slotFrame in ipairs(slots) do
+                if slotFrame then
+                    if firstY == nil then
+                        firstY = slotFrame.Position.Y.Offset
+                    end
+                    if slotFrame.Position.Y.Offset == firstY then
+                        columns += 1
+                    end
+                end
+            end
+            if columns <= 0 then
+                columns = group.max
+            end
+            manualGroupMap[group.gearName] = {
+                holder = holder,
+                slotParent = slotParent,
+                slots = slots,
+                titleLabel = titleLabel,
+                prefix = group.prefix,
+                max = group.max,
+                columns = columns,
+                baseSize = holder.Size,
+                basePosition = holder.Position,
+                baseHeight = holder.AbsoluteSize.Y,
+            }
+        end
+    end
+end
+local function clearSlotOverlay(slotFrame)
+    local overlay = slotFrame:FindFirstChild("ToolHubOverlay")
+    if overlay then
+        overlay:Destroy()
+    end
+    local itemObject = slotFrame:FindFirstChild("Item")
+    if itemObject then
+        pcall(function()
+            itemObject.Value = nil
+        end)
+    end
+    local itemName = slotFrame:FindFirstChild("ItemName")
+    if itemName and itemName:IsA("TextLabel") then
+        itemName.Text = ""
+        itemName.Visible = false
+    end
+    local amount = slotFrame:FindFirstChild("Amount")
+    if amount and amount:IsA("TextLabel") then
+        amount.Text = ""
+        amount.Visible = false
+    end
+    local durability = slotFrame:FindFirstChild("Durability")
+    if durability and durability:IsA("GuiObject") then
+        durability.Visible = false
+    end
+    local imageLabel = slotFrame:FindFirstChild("ImageLabel")
+    if imageLabel and imageLabel:IsA("ImageLabel") then
+        imageLabel.Image = ""
+        imageLabel.ImageTransparency = 0
+        imageLabel.Visible = true
+        imageLabel.ZIndex = 6
+    end
+    local preImageLabel = slotFrame:FindFirstChild("PreImageLabel")
+    if preImageLabel and preImageLabel:IsA("ImageLabel") then
+        preImageLabel.Image = ""
+        preImageLabel.ImageTransparency = 0.5
+        preImageLabel.Visible = true
+        preImageLabel.ZIndex = 2
+    elseif preImageLabel and preImageLabel:IsA("GuiObject") then
+        preImageLabel.Visible = true
+    end
+    local fastLootIcon = slotFrame:FindFirstChild("FastLootIcon")
+    if fastLootIcon and fastLootIcon:IsA("ImageLabel") then
+        fastLootIcon.Image = ""
+        fastLootIcon.Visible = false
+    end
+    for _, descendant in ipairs(slotFrame:GetDescendants()) do
+        if descendant:IsA("TextLabel") or descendant:IsA("TextButton") then
+            local text = tostring(descendant.Text or "")
+            local isSmallBadge = descendant.AbsoluteSize.X <= 24 and descendant.AbsoluteSize.Y <= 20
+            local isTopBadge = descendant.Position.Y.Scale <= 0.1 and descendant.Position.X.Scale >= 0.45
+            if text == "5" or text == "(5)" or (isSmallBadge and isTopBadge) then
+                descendant.Visible = false
+            end
+        elseif descendant:IsA("ImageLabel") or descendant:IsA("ImageButton") then
+            local isSmallMarker = descendant.AbsoluteSize.X <= 24 and descendant.AbsoluteSize.Y <= 24
+            local isTopMarker = descendant.Position.Y.Scale <= 0.1 and descendant.Position.X.Scale >= 0.45
+            local isManagedDirectIcon = descendant.Parent == slotFrame and (
+                descendant.Name == "ImageLabel"
+                or descendant.Name == "PreImageLabel"
+                or descendant.Name == "FastLootIcon"
+                or descendant.Name == "ClickDetector"
+                or descendant.Name == "ToolHubSelectButton"
+            )
+            if not isManagedDirectIcon and (descendant.Parent ~= slotFrame or (isSmallMarker and isTopMarker)) then
+                descendant.Visible = false
+            end
+        end
+    end
+end
+local function renderSlotOverlay(slotFrame, item, inventoryName)
+    clearSlotOverlay(slotFrame)
+    local displayName = item.Name
+    local itemValue = item
+    if item:IsA("ObjectValue") and item.Value then
+        itemValue = item.Value
+    end
+    local itemProperties = itemValue and itemValue:FindFirstChild("ItemProperties")
+    if itemProperties then
+        displayName = itemProperties:GetAttribute("CallSign") or itemValue.Name or item.Name
+    elseif itemValue then
+        displayName = itemValue.Name
+    end
+    local amountValue = item:GetAttribute("Amount")
+    if amountValue == nil and itemValue then
+        amountValue = itemValue:GetAttribute("Amount")
+    end
+    if amountValue == nil then
+        amountValue = 1
+    end
+    local itemObject = slotFrame:FindFirstChild("Item")
+    if itemObject then
+        pcall(function()
+            itemObject.Value = item
+        end)
+    end
+    local itemName = slotFrame:FindFirstChild("ItemName")
+    if itemName and itemName:IsA("TextLabel") then
+        itemName.Text = displayName
+        itemName.TextStrokeTransparency = 1
+        itemName.Visible = true
+    end
+    local amount = slotFrame:FindFirstChild("Amount")
+    if amount and amount:IsA("TextLabel") then
+        amount.Text = tostring(amountValue)
+        amount.TextColor3 = Color3.fromRGB(255, 255, 255)
+        amount.TextStrokeTransparency = 1
+        amount.Visible = amountValue ~= nil
+    end
+    local imageLabel = slotFrame:FindFirstChild("ImageLabel")
+    local preImageLabel = slotFrame:FindFirstChild("PreImageLabel")
+    local iconImage = nil
+    if itemProperties then
+        local itemIcon = itemProperties:FindFirstChild("ItemIcon")
+        if itemIcon and (itemIcon:IsA("ImageLabel") or itemIcon:IsA("ImageButton")) and itemIcon.Image ~= "" then
+            iconImage = itemIcon.Image
+        end
+    end
+    if not iconImage then
+        local itemsListModels = RS:FindFirstChild("ItemsListModels")
+        local previewModel = itemsListModels and itemsListModels:FindFirstChild(item.Name)
+        local previewIcon = previewModel and previewModel:FindFirstChild("ItemProperties")
+        previewIcon = previewIcon and previewIcon:FindFirstChild("ItemIcon")
+        if previewIcon and (previewIcon:IsA("ImageLabel") or previewIcon:IsA("ImageButton")) and previewIcon.Image ~= "" then
+            iconImage = previewIcon.Image
+        end
+    end
+    if imageLabel and imageLabel:IsA("ImageLabel") and iconImage then
+        imageLabel.Image = iconImage
+        imageLabel.ImageTransparency = 0
+        imageLabel.Visible = true
+        imageLabel.ZIndex = 6
+    end
+    if preImageLabel and preImageLabel:IsA("GuiObject") then
+        preImageLabel.Visible = not not (not iconImage)
+    end
+    local overlay = Instance.new("TextLabel")
+    overlay.Name = "ToolHubOverlay"
+    overlay.Size = UDim2.new(1, -4, 0, 12)
+    overlay.Position = UDim2.new(0, 2, 1, -12)
+    overlay.BackgroundTransparency = 1
+    overlay.TextXAlignment = Enum.TextXAlignment.Left
+    overlay.Font = Enum.Font.Gotham
+    overlay.TextSize = 8
+    overlay.TextColor3 = Color3.fromRGB(188, 191, 199)
+    overlay.TextStrokeTransparency = 1
+    overlay.ZIndex = 50
+    overlay.Text = inventoryName
+    overlay.Parent = slotFrame
+end
+local function getRenderedGroupHeight(meta, slotCount)
+    local maxBottom = 0
+    if meta.titleLabel then
+        local titleBottom = meta.titleLabel.Position.Y.Offset + meta.titleLabel.Size.Y.Offset
+        if titleBottom > maxBottom then
+            maxBottom = titleBottom
+        end
+    end
+    for index, slotFrame in ipairs(meta.slots) do
+        if index <= slotCount and slotFrame then
+            local slotLayout = manualSlotLayoutMap[slotFrame.Name]
+            local position = slotLayout and slotLayout.position or slotFrame.Position
+            local size = slotLayout and slotLayout.size or slotFrame.Size
+            local bottom = position.Y.Offset + size.Y.Offset
+            if bottom > maxBottom then
+                maxBottom = bottom
+            end
+        end
+    end
+    if maxBottom <= 0 then
+        maxBottom = meta.baseHeight or 110
+    end
+    return maxBottom + 10
+end
+local function syncInventoryGroupVisibility()
+    local orderedGroups = {}
+    for groupName, meta in pairs(manualGroupMap) do
+        table.insert(orderedGroups, { name = groupName, meta = meta })
+    end
+    table.sort(orderedGroups, function(a, b)
+        local ay = a.meta.basePosition and a.meta.basePosition.Y.Offset or 0
+        local by = b.meta.basePosition and b.meta.basePosition.Y.Offset or 0
+        return ay < by
+    end)
+    local firstGroupMeta = orderedGroups[1] and orderedGroups[1].meta
+    local nextY = firstGroupMeta and firstGroupMeta.basePosition and firstGroupMeta.basePosition.Y.Offset or nil
+    local stackedYScale = firstGroupMeta and firstGroupMeta.basePosition and firstGroupMeta.basePosition.Y.Scale or 0
+    local lastRenderedHeight = nil
+    for _, groupEntry in ipairs(orderedGroups) do
+        local groupName = groupEntry.name
+        local meta = groupEntry.meta
+        local containerInfo = latestContainersByGear[groupName]
+        local slotCount = containerInfo and tonumber(containerInfo.slotCount) or 0
+        local visible = slotCount > 0
+        local holder = meta.holder
+        if holder then
+            holder.Visible = visible
+            if meta.baseSize then
+                holder.Size = meta.baseSize
+            end
+            if visible and meta.basePosition then
+                if lastRenderedHeight then
+                    local baseGap = 12
+                    nextY += (lastRenderedHeight or 0) + baseGap
+                end
+                if nextY == nil then
+                    nextY = meta.basePosition.Y.Offset
+                    stackedYScale = meta.basePosition.Y.Scale
+                end
+                holder.Position = UDim2.new(meta.basePosition.X.Scale, meta.basePosition.X.Offset, stackedYScale, nextY)
+                lastRenderedHeight = getRenderedGroupHeight(meta, slotCount)
+            elseif meta.basePosition then
+                holder.Position = meta.basePosition
+                if meta.baseSize then
+                    holder.Size = UDim2.new(meta.baseSize.X.Scale, meta.baseSize.X.Offset, 0, 0)
+                end
+            end
+        end
+        if meta.titleLabel then
+            meta.titleLabel.Visible = visible
+            if containerInfo then
+                local prettyName = containerInfo.gearName == "ClothingChestRig" and "CHEST RIG"
+                    or containerInfo.gearName == "ClothingBackpack" and "BACKPACK"
+                    or containerInfo.gearName == "ClothingPants" and "PANTS"
+                    or "SHIRT"
+                meta.titleLabel.Text = prettyName
+                meta.titleLabel.TextStrokeTransparency = 1
+            end
+        end
+        for index, slotFrame in ipairs(meta.slots) do
+            if slotFrame then
+                local slotLayout = manualSlotLayoutMap[slotFrame.Name]
+                if slotLayout then
+                    slotFrame.Size = slotLayout.size
+                    slotFrame.Position = slotLayout.position
+                end
+                slotFrame.Visible = visible and index <= slotCount
+                clearSlotOverlay(slotFrame)
+            end
+        end
+    end
+end
+local function normalizeClonedInventoryVisuals(root)
+    if not root then
+        return
+    end
+    for _, descendant in ipairs(root:GetDescendants()) do
+        if descendant:IsA("UICorner") then
+            descendant:Destroy()
+        end
+        if descendant:IsA("TextLabel") or descendant:IsA("TextButton") then
+            local text = string.upper((descendant.Text or ""):gsub("%s+", " "))
+            descendant.TextStrokeTransparency = 1
+            if text == "YOUR INVENTORY" then
+                descendant.Text = "INVENTORY"
+            elseif text == "LT" or text == "RT" then
+                descendant.Visible = false
+            end
+        elseif descendant:IsA("TextBox") then
+            descendant.TextStrokeTransparency = 1
+        end
+        if descendant:IsA("GuiObject") then
+            local upperName = string.upper(descendant.Name)
+            if upperName == "LT" or upperName == "RT" or string.find(upperName, "GAMEPAD", 1, true) then
+                descendant.Visible = false
+            end
+        end
+        if descendant:IsA("GuiObject") and descendant.BackgroundTransparency < 1 then
+            local color = descendant.BackgroundColor3
+            local brightness = (color.R + color.G + color.B) / 3
+            if brightness < 0.18 then
+                descendant.BackgroundColor3 = Color3.fromRGB(53, 53, 53)
+            end
+        end
+    end
+end
+local function restyleClonedInventoryFrame(frame)
+    if not frame then
+        return
+    end
+    frame.BackgroundColor3 = Color3.fromRGB(34, 34, 36)
+    frame.BorderSizePixel = 0
+    local frameStroke = frame:FindFirstChild("ToolHubFrameStroke")
+    if not frameStroke then
+        frameStroke = Instance.new("UIStroke")
+        frameStroke.Name = "ToolHubFrameStroke"
+        frameStroke.Parent = frame
+    end
+    frameStroke.Color = Color3.fromRGB(84, 72, 48)
+    frameStroke.Thickness = 1.2
+    frameStroke.Transparency = 1
+    local existingHeader = frame:FindFirstChild("ToolHubHeaderMask")
+    if not existingHeader then
+        existingHeader = Instance.new("Frame")
+        existingHeader.Name = "ToolHubHeaderMask"
+        existingHeader.Size = UDim2.new(1, 0, 0, 72)
+        existingHeader.Position = UDim2.new(0, 0, 0, -6)
+        existingHeader.BackgroundColor3 = Color3.fromRGB(46, 45, 43)
+        existingHeader.BorderSizePixel = 0
+        existingHeader.ZIndex = 10000
+        existingHeader.Parent = frame
+    end
+    existingHeader.Visible = true
+    for _, child in ipairs(existingHeader:GetChildren()) do
+        child:Destroy()
+    end
+    local headerTitle = Instance.new("TextLabel")
+    headerTitle.Name = "ToolHubHeaderTitle"
+    headerTitle.Size = UDim2.new(1, 0, 0, 42)
+    headerTitle.Position = UDim2.new(0, 0, 0, 6)
+    headerTitle.BackgroundTransparency = 1
+    headerTitle.Text = "INVENTORY"
+    headerTitle.Font = Enum.Font.GothamBold
+    headerTitle.TextSize = 19
+    headerTitle.TextColor3 = Color3.fromRGB(244, 239, 231)
+    headerTitle.TextStrokeTransparency = 1
+    headerTitle.ZIndex = 10001
+    headerTitle.Parent = existingHeader
+    local inventory = frame:FindFirstChild("Inventory", true)
+    for _, child in ipairs(frame:GetChildren()) do
+        if child:IsA("GuiObject") and child ~= inventory and child ~= existingHeader and child.Name ~= "ToolHubDragHandle" and child.Name ~= "ToolHubModeHost" and child.Name ~= "ToolHubOverlayMask" then
+            local topY = child.Position.Y.Offset
+            if topY <= 72 then
+                child.Visible = false
+            end
+        end
+    end
+    local scrolling = inventory and inventory:FindFirstChild("ScrollingFrame")
+    if scrolling then
+        scrolling.BackgroundColor3 = Color3.fromRGB(54, 53, 51)
+        scrolling.BackgroundTransparency = 0
+        scrolling.BorderSizePixel = 0
+        for _, child in ipairs(inventory:GetChildren()) do
+            if child:IsA("GuiObject") and child ~= scrolling then
+                local topY = child.Position.Y.Offset
+                if topY <= 72 then
+                    child.Visible = false
+                end
+            end
+        end
+        local backgroundMask = scrolling:FindFirstChild("ToolHubBackgroundMask")
+        if not backgroundMask then
+            backgroundMask = Instance.new("Frame")
+            backgroundMask.Name = "ToolHubBackgroundMask"
+            backgroundMask.Size = UDim2.new(1, 0, 1, 0)
+            backgroundMask.Position = UDim2.new(0, 0, 0, 0)
+            backgroundMask.BackgroundColor3 = Color3.fromRGB(54, 53, 51)
+            backgroundMask.BorderSizePixel = 0
+            backgroundMask.ZIndex = 0
+            backgroundMask.Parent = scrolling
+        end
+        for _, slotFrame in pairs(manualSlotMap) do
+            if slotFrame then
+                slotFrame.BackgroundColor3 = Color3.fromRGB(52, 51, 50)
+                slotFrame.BorderSizePixel = 0
+                local slotStroke = slotFrame:FindFirstChild("ToolHubSlotStroke")
+                if not slotStroke then
+                    slotStroke = Instance.new("UIStroke")
+                    slotStroke.Name = "ToolHubSlotStroke"
+                    slotStroke.Parent = slotFrame
+                end
+                slotStroke.Color = Color3.fromRGB(37, 36, 35)
+                slotStroke.Thickness = 1.4
+                slotStroke.Transparency = 1
+            end
+        end
+        for _, child in ipairs(scrolling:GetChildren()) do
+            if child:IsA("GuiObject") and child ~= backgroundMask then
+                local upperName = string.upper(child.Name)
+                local childText = ""
+                pcall(function()
+                    childText = string.upper((child.Text or ""):gsub("%s+", " "))
+                end)
+                if upperName:find("EQUIP", 1, true) or childText == "EQUIPMENT" then
+                    child.Visible = false
+                end
+            end
+        end
+        for _, groupName in ipairs({"ClothingChestRig", "ClothingShirt", "ClothingPants", "ClothingBackpack"}) do
+            local meta = manualGroupMap[groupName]
+            local containerInfo = latestContainersByGear[groupName]
+            if meta then
+                local holder = meta.holder
+                local slotCount = containerInfo and containerInfo.slotCount or 0
+                holder.Visible = slotCount > 0
+                if holder.Visible then
+                    if meta.titleLabel then
+                        meta.titleLabel.Visible = true
+                        if containerInfo then
+                            local prettyName = containerInfo.gearName == "ClothingChestRig" and "CHEST RIG"
+                                or containerInfo.gearName == "ClothingBackpack" and "BACKPACK"
+                                or containerInfo.gearName == "ClothingPants" and "PANTS"
+                                or "SHIRT"
+                            meta.titleLabel.Text = prettyName
+                            meta.titleLabel.TextStrokeTransparency = 1
+                        end
+                    end
+                    if meta.slotParent then
+                        for index, slotFrame in ipairs(meta.slots) do
+                            if slotFrame then
+                                local slotLayout = manualSlotLayoutMap[slotFrame.Name]
+                                if slotLayout then
+                                    slotFrame.Size = slotLayout.size
+                                    slotFrame.Position = slotLayout.position
+                                end
+                                slotFrame.Visible = index <= slotCount
+                            end
+                        end
+                    end
+                    if meta.baseSize then
+                        holder.Size = meta.baseSize
+                    end
+                else
+                    if meta.titleLabel then
+                        meta.titleLabel.Visible = false
+                    end
+                    for _, slotFrame in ipairs(meta.slots) do
+                        if slotFrame then
+                            slotFrame.Visible = false
+                        end
+                    end
+                end
+            end
+        end
+        for _, descendant in ipairs(scrolling:GetDescendants()) do
+            if descendant:IsA("TextLabel") or descendant:IsA("TextButton") or descendant:IsA("TextBox") then
+                descendant.TextStrokeTransparency = 1
+            end
+            if descendant:IsA("GuiObject") and descendant ~= backgroundMask then
+                local upperName = string.upper(descendant.Name)
+                local descText = ""
+                pcall(function()
+                    descText = string.upper((descendant.Text or ""):gsub("%s+", " "))
+                end)
+                local isHeaderJunk = upperName == "LT" or upperName == "RT" or upperName:find("GAMEPAD", 1, true) or descText == "YOUR INVENTORY" or descText == "INVENTORY"
+                if isHeaderJunk then
+                    descendant.Visible = false
+                end
+            end
+        end
+    end
+end
+local function collectReplicatedInventoryItems()
+    local itemsBySlot = {}
+    local containersByGear, inventoryRoot = collectInventoryContainers()
+    latestContainersByGear = containersByGear
+    if not inventoryRoot then
+        return itemsBySlot, ""
+    end
+    local parts = {}
+    for _, gearName in ipairs({"ClothingChestRig", "ClothingShirt", "ClothingPants", "ClothingBackpack"}) do
+        local containerInfo = containersByGear[gearName]
+        if containerInfo then
+            local inventoryFolder = containerInfo.inventoryFolder
+            local containerName = containerInfo.containerName
+            if containerName and containerName ~= "" then
+                for _, item in ipairs(inventoryFolder:GetChildren()) do
+                    local slotName = item:GetAttribute("Slot")
+                    if slotName == nil and item:IsA("ObjectValue") and item.Value then
+                        slotName = item.Value:GetAttribute("Slot")
+                    end
+                    if slotName and manualSlotMap[slotName] and not itemsBySlot[slotName] then
+                        local amountValue = item:GetAttribute("Amount")
+                        if amountValue == nil and item:IsA("ObjectValue") and item.Value then
+                            amountValue = item.Value:GetAttribute("Amount")
+                        end
+                        itemsBySlot[slotName] = {
+                            item = item,
+                            inventoryName = containerName,
+                            containerName = containerName,
+                            slotName = slotName,
+                            gearName = gearName,
+                        }
+                        table.insert(parts, slotName .. ":" .. containerName .. ":" .. item.Name .. ":" .. tostring(amountValue or ""))
+                    end
+                end
+            end
+        end
+    end
+    table.sort(parts)
+    return itemsBySlot, table.concat(parts, "|")
+end
+local function refreshReplicatedInventoryView(force)
+    if not manualInventoryFrame then
+        return
+    end
+    local itemsBySlot, signature = collectReplicatedInventoryItems()
+    latestItemsBySlot = itemsBySlot
+    restyleClonedInventoryFrame(manualInventoryFrame)
+    manualInventorySignature = signature
+    syncInventoryGroupVisibility()
+    for slotName, entry in pairs(itemsBySlot) do
+        local slotFrame = manualSlotMap[slotName]
+        if slotFrame and slotFrame.Visible then
+            renderSlotOverlay(slotFrame, entry.item, entry.inventoryName)
+        end
+    end
+    if selectedInventoryEntry and selectedInventoryEntry.slotName and not latestItemsBySlot[selectedInventoryEntry.slotName] then
+        selectedInventoryEntry = nil
+    elseif selectedInventoryEntry and selectedInventoryEntry.slotName then
+        selectedInventoryEntry = latestItemsBySlot[selectedInventoryEntry.slotName]
+    end
+    applySelectedSlotVisuals()
+    updateSelectedItemLabels()
+end
+local function createFallbackInventoryFrame(parent)
+    local frame = Instance.new("Frame")
+    frame.Name = "InventoryFrame"
+    frame.Size = UDim2.new(0, 760, 0, 560)
+    frame.BackgroundColor3 = Color3.fromRGB(32, 35, 41)
+    frame.BorderSizePixel = 0
+    frame.Parent = parent
+    corner(frame, 8)
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, 0, 0, 28)
+    title.BackgroundTransparency = 1
+    title.Text = "Inventory"
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 14
+    title.TextColor3 = Color3.fromRGB(245, 245, 246)
+    title.Parent = frame
+    local inventory = Instance.new("Frame")
+    inventory.Name = "Inventory"
+    inventory.Size = UDim2.new(1, -20, 1, -40)
+    inventory.Position = UDim2.new(0, 10, 0, 30)
+    inventory.BackgroundTransparency = 1
+    inventory.Parent = frame
+    local scrolling = Instance.new("ScrollingFrame")
+    scrolling.Name = "ScrollingFrame"
+    scrolling.Size = UDim2.new(1, 0, 1, 0)
+    scrolling.CanvasSize = UDim2.new(0, 0, 0, 900)
+    scrolling.ScrollBarThickness = 6
+    scrolling.BackgroundTransparency = 1
+    scrolling.BorderSizePixel = 0
+    scrolling.Parent = inventory
+    local definitions = {
+        { holder = "ClothingBackpack", prefix = "Backpack", max = 36 },
+        { holder = "ClothingChestRig", prefix = "ChestRig", max = 12 },
+        { holder = "ClothingPants", prefix = "Pants", max = 6 },
+        { holder = "ClothingShirt", prefix = "Shirt", max = 6 },
+    }
+    local y = 0
+    for _, definition in ipairs(definitions) do
+        local holder = Instance.new("Frame")
+        holder.Name = definition.holder
+        holder.Size = UDim2.new(1, 0, 0, 200)
+        holder.Position = UDim2.new(0, 0, 0, y)
+        holder.BackgroundTransparency = 1
+        holder.Parent = scrolling
+        local slotHolder = Instance.new("Frame")
+        slotHolder.Name = "Frame"
+        slotHolder.Size = UDim2.new(1, 0, 1, -20)
+        slotHolder.Position = UDim2.new(0, 0, 0, 20)
+        slotHolder.BackgroundTransparency = 1
+        slotHolder.Parent = holder
+        local grid = Instance.new("UIGridLayout")
+        grid.CellSize = UDim2.new(0, 58, 0, 58)
+        grid.CellPadding = UDim2.new(0, 4, 0, 4)
+        grid.Parent = slotHolder
+        for i = 1, definition.max do
+            local slotFrame = Instance.new("Frame")
+            slotFrame.Name = definition.prefix .. i
+            slotFrame.BackgroundColor3 = Color3.fromRGB(24, 26, 31)
+            slotFrame.BorderSizePixel = 0
+            slotFrame.Parent = slotHolder
+            corner(slotFrame, 4)
+            stroke(slotFrame, Color3.fromRGB(77, 80, 92), 1, 0)
+        end
+        y += 210
+    end
+    return frame
+end
+local function getSelectedInventoryContext()
+    local selectedContainerName = selectedInventoryEntry and (selectedInventoryEntry.containerName or selectedInventoryEntry.inventoryName)
+    if not selectedInventoryEntry or not selectedInventoryEntry.item or not selectedContainerName or not selectedInventoryEntry.slotName then
+        return nil
+    end
+    local inventoryFolder
+    local ok = pcall(function()
+        inventoryFolder = RS.Players[LP.Name].Inventory[selectedContainerName].Inventory
+    end)
+    if not ok or not inventoryFolder then
+        return nil
+    end
+    return {
+        item = selectedInventoryEntry.item,
+        containerName = selectedContainerName,
+        slotName = selectedInventoryEntry.slotName,
+        inventoryFolder = inventoryFolder,
+        gearName = selectedInventoryEntry.gearName,
+    }
+end
+local function getSlotNamesForContainer(containerInfo)
+    local slotNames = {}
+    if not containerInfo then
+        return slotNames
+    end
+    for i = 1, containerInfo.slotCount do
+        slotNames[i] = containerInfo.prefix .. i
+    end
+    return slotNames
+end
+local function countDirectInventoryItems(inventoryFolder)
+    if not inventoryFolder then
+        return 0
+    end
+    local count = 0
+    for _, child in ipairs(inventoryFolder:GetChildren()) do
+        if child:IsA("ObjectValue") or child:IsA("Folder") or child:IsA("Model") or child:IsA("Tool") then
+            count += 1
+        end
+    end
+    return count
+end
+local function getVaultCapacityInfo()
+    local playerFolder = RS:FindFirstChild("Players")
+    playerFolder = playerFolder and playerFolder:FindFirstChild(LP.Name)
+    local vaultStorage = playerFolder and playerFolder:FindFirstChild("VaultStorage")
+    local vaultInventory = vaultStorage and vaultStorage:FindFirstChild("Inventory")
+    local slots = tonumber(vaultStorage and vaultStorage:GetAttribute("Slots")) or 0
+    local used = countDirectInventoryItems(vaultInventory)
+    return used, slots
+end
+local function getInventoryCapacityInfo()
+    local used = 0
+    local slots = 0
+    local containersByGear = select(1, collectInventoryContainers())
+    for _, containerInfo in pairs(containersByGear) do
+        slots += tonumber(containerInfo.slotCount) or 0
+        used += countDirectInventoryItems(containerInfo.inventoryFolder)
+    end
+    return used, slots
+end
+local function showVaultFullWarning()
+    if vaultFullWarningRunning or not vaultFullWarningLabel then
+        return
+    end
+    vaultFullWarningRunning = true
+    task.spawn(function()
+        local label = vaultFullWarningLabel
+        label.Visible = true
+        label.TextTransparency = 0
+        label.TextStrokeTransparency = 0.25
+        label.Size = UDim2.new(0, 520, 0, 70)
+        local deadline = os.clock() + 5
+        while label and label.Parent and not isShutdown and os.clock() < deadline do
+            label.Visible = true
+            TweenService:Create(label, TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                TextTransparency = 0,
+                TextStrokeTransparency = 0,
+                Size = UDim2.new(0, 560, 0, 78),
+            }):Play()
+            task.wait(0.22)
+            if not label or not label.Parent or isShutdown then
+                break
+            end
+            TweenService:Create(label, TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                TextTransparency = 0.45,
+                TextStrokeTransparency = 0.55,
+                Size = UDim2.new(0, 520, 0, 70),
+            }):Play()
+            task.wait(0.22)
+        end
+        if label and label.Parent then
+            label.Visible = false
+        end
+        vaultFullWarningRunning = false
+    end)
+end
+local function updateCapacityStatus()
+    if not capacityStatusLabel or not capacityStatusLabel.Parent then
+        return
+    end
+    local vaultUsed, vaultSlots = getVaultCapacityInfo()
+    local invUsed, invSlots = getInventoryCapacityInfo()
+    local vaultFull = vaultSlots > 0 and vaultUsed >= vaultSlots
+    capacityStatusLabel.Text = string.format("Vault %d/%d | Inv %d/%d", vaultUsed, vaultSlots, invUsed, invSlots)
+    capacityStatusLabel.TextColor3 = vaultFull and Color3.fromRGB(255, 65, 65) or TopTheme.Text
+    if vaultFull and not vaultWasFull then
+        showVaultFullWarning()
+    end
+    vaultWasFull = vaultFull
+end
+local function startCapacityStatusLoop()
+    capacityStatusLoopVersion += 1
+    local loopVersion = capacityStatusLoopVersion
+    task.spawn(function()
+        while not isShutdown and loopVersion == capacityStatusLoopVersion and capacityStatusLabel and capacityStatusLabel.Parent do
+            updateCapacityStatus()
+            task.wait(CAPACITY_STATUS_INTERVAL)
+        end
+    end)
+end
+local function getItemAmount(item)
+    return tonumber(item and item:GetAttribute("Amount")) or 1
+end
+local function valueIsEnabled(value)
+    return value == true or value == 1 or value == "1" or value == "true" or value == "on"
+end
+local function getToggleVersion(data)
+    return tonumber(data and data.toggleVersion) or 0
+end
+local function getItemStackLimit(itemName)
+    return ITEM_STACK_LIMITS[itemName] or 1
+end
+local function itemStackIsFull(item)
+    return getItemAmount(item) >= getItemStackLimit(item and item.Name)
+end
+selectFirstMatchingItem = function(itemName)
+    if not itemName or itemName == "" then
+        return false
+    end
+    for slotName, entry in pairs(latestItemsBySlot) do
+        if entry and entry.item and entry.item.Name == itemName then
+            selectedInventoryEntry = entry
+            automationState.selectedItemName = itemName
+            updateSelectedItemLabels()
+            applySelectedSlotVisuals()
+            return true
+        end
+    end
+    if getAllLocalItemsByName then
+        local matches = getAllLocalItemsByName(itemName)
+        local first = matches[1]
+        if first and first.item then
+            selectedInventoryEntry = {
+                item = first.item,
+                slotName = first.slotName,
+                containerName = first.containerName,
+                inventoryName = first.containerName,
+                gearName = first.gearName,
+            }
+            automationState.selectedItemName = itemName
+            updateSelectedItemLabels()
+            applySelectedSlotVisuals()
+            return true
+        end
+    end
+    return false
+end
+getAllLocalItemsByName = function(itemName)
+    local matches = {}
+    local containers = collectAllInventoryFolders and collectAllInventoryFolders() or {}
+    if #containers == 0 then
+        local containersByGear = select(1, collectInventoryContainers())
+        for _, containerInfo in pairs(containersByGear) do
+            table.insert(containers, containerInfo)
+        end
+    end
+    for _, containerInfo in pairs(containers) do
+        local inv = containerInfo.inventoryFolder
+        for _, item in ipairs(inv:GetChildren()) do
+            if item.Name == itemName then
+                table.insert(matches, {
+                    item = item,
+                    inventoryFolder = inv,
+                    containerName = containerInfo.containerName,
+                    slotName = item:GetAttribute("Slot"),
+                    gearName = containerInfo.gearName,
+                })
+            end
+        end
+    end
+    return matches
+end
+collectAllInventoryFolders = function()
+    local folders = {}
+    local playerFolder = RS:FindFirstChild("Players")
+    playerFolder = playerFolder and playerFolder:FindFirstChild(LP.Name)
+    local inventoryRoot = playerFolder and playerFolder:FindFirstChild("Inventory")
+    if not inventoryRoot then
+        return folders
+    end
+    for _, child in ipairs(inventoryRoot:GetChildren()) do
+        local inv = child:FindFirstChild("Inventory")
+        if inv and next(inv:GetAttributes()) ~= nil then
+            local slotCount = 0
+            local slotPrefix = nil
+            for attributeName, attributeValue in pairs(inv:GetAttributes()) do
+                slotCount = tonumber(attributeValue) or slotCount
+                local _, prefix = normalizeInventoryTypeName(attributeName)
+                slotPrefix = prefix or slotPrefix
+                break
+            end
+            table.insert(folders, {
+                containerName = child.Name,
+                inventoryFolder = inv,
+                slotCount = slotCount,
+                prefix = slotPrefix,
+            })
+        end
+    end
+    return folders
+end
+local function getTotalEquippedSlotCount()
+    local total = 0
+    for _, containerInfo in ipairs(collectAllInventoryFolders()) do
+        total += tonumber(containerInfo.slotCount) or 0
+    end
+    return total
+end
+local function getVaultInventoryFolder()
+    local vaultInv
+    pcall(function()
+        local player = RS.Players[LP.Name]
+        if player:FindFirstChild("VaultStorage") then
+            vaultInv = player.VaultStorage.Inventory
+        elseif player:FindFirstChild("Vault") then
+            vaultInv = player.Vault.Inventory
+        elseif player.Inventory:FindFirstChild("Vault") then
+            vaultInv = player.Inventory.Vault.Inventory
+        end
+    end)
+    return vaultInv
+end
+local function getAllVaultItemsSorted()
+    local vaultInv = getVaultInventoryFolder()
+    if not vaultInv then return {} end
+    local items = vaultInv:GetChildren()
+    table.sort(items, function(a, b)
+        local slotA = tonumber((a:GetAttribute("Slot") or ""):match("%d+")) or 999
+        local slotB = tonumber((b:GetAttribute("Slot") or ""):match("%d+")) or 999
+        return slotA < slotB
+    end)
+    return items
+end
+local function dropWholeVault()
+    local remote = Remotes:FindFirstChild("DropItem")
+    if not remote then
+        dprint("DropVault: DropItem remote not found")
+        return 0
+    end
+    local vaultInv = getVaultInventoryFolder()
+    if not vaultInv then
+        dprint("DropVault: vault not found")
+        return 0
+    end
+    local items = vaultInv:GetChildren()
+    if #items == 0 then
+        dprint("DropVault: vault empty")
+        return 0
+    end
+    local dropped = 0
+    for _, item in ipairs(items) do
+        if isShutdown then break end
+        if item and item.Parent == vaultInv then
+            pcall(function()
+                remote:FireServer(item)
+            end)
+            dropped += 1
+            task.wait(0.05)
+        end
+    end
+    vaultDropIndex = 0
+    dprint("DropVault: dropped", dropped, "items")
+    return dropped
+end
+local function dropVaultRow()
+    local remote = Remotes:FindFirstChild("DropItem")
+    if not remote then
+        dprint("DropRow: DropItem remote not found")
+        return 0
+    end
+    local vaultInv = getVaultInventoryFolder()
+    if not vaultInv then
+        dprint("DropRow: vault not found")
+        return 0
+    end
+    local items = getAllVaultItemsSorted()
+    if #items == 0 then
+        dprint("DropRow: vault empty")
+        vaultDropIndex = 0
+        return 0
+    end
+    if vaultDropIndex >= #items then
+        dprint("DropRow: all items already dropped, resetting index")
+        vaultDropIndex = 0
+        items = getAllVaultItemsSorted()
+        if #items == 0 then return 0 end
+    end
+    local startIndex = vaultDropIndex + 1
+    local count = 0
+    for i = startIndex, #items do
+        if isShutdown or count >= 6 then break end
+        local item = items[i]
+        if item and item.Parent == vaultInv then
+            pcall(function()
+                remote:FireServer(item)
+            end)
+            vaultDropIndex += 1
+            count += 1
+            task.wait(0.05)
+        else
+            vaultDropIndex += 1
+        end
+    end
+    dprint("DropRow: dropped", count, "items, index now", vaultDropIndex)
+    return count
+end
+local function collectTradeItemsByName(itemName, maxItems)
+    local tradeList = {}
+    for _, itemInfo in ipairs(getAllLocalItemsByName(itemName)) do
+        if itemInfo.item and itemInfo.item.Parent == itemInfo.inventoryFolder and itemStackIsFull(itemInfo.item) then
+            table.insert(tradeList, itemInfo.item)
+            if #tradeList >= maxItems then
+                break
+            end
+        end
+    end
+    return tradeList
+end
+local function getLargestAmountItemByName(itemName)
+    local bestItem = nil
+    local bestAmount = -1
+    for _, itemInfo in ipairs(getAllLocalItemsByName(itemName)) do
+        if itemInfo.item and itemInfo.item.Parent == itemInfo.inventoryFolder then
+            local amount = getItemAmount(itemInfo.item)
+            if amount > bestAmount then
+                bestAmount = amount
+                bestItem = itemInfo.item
+            end
+        end
+    end
+    return bestItem, bestAmount
+end
+local function allTargetStacksAreFull(itemName)
+    local items = getAllLocalItemsByName(itemName)
+    if #items == 0 then
+        return false
+    end
+    for _, itemInfo in ipairs(items) do
+        if itemInfo.item and not itemStackIsFull(itemInfo.item) then
+            return false
+        end
+    end
+    return true
+end
+local function depositExcessTargetItemToVault(itemName)
+    local vaultInv = getVaultInventoryFolder()
+    if not vaultInv then
+        dprint("Vault inventory not found")
+        return 0
+    end
+    local targetItems = getAllLocalItemsByName(itemName)
+    if #targetItems == 0 then
+        return 0
+    end
+    local totalAmount = 0
+    for _, itemInfo in ipairs(targetItems) do
+        totalAmount += getItemAmount(itemInfo.item)
+    end
+    local amountToKeep = math.max(1, getTotalEquippedSlotCount())
+    if totalAmount <= amountToKeep then
+        dprint("Vault skip; keeping", totalAmount, "needed", amountToKeep)
+        return 0
+    end
+    table.sort(targetItems, function(a, b)
+        return getItemAmount(a.item) > getItemAmount(b.item)
+    end)
+    local occupiedVaultSlots = {}
+    for _, item in ipairs(vaultInv:GetChildren()) do
+        local slot = item:GetAttribute("Slot")
+        if slot then occupiedVaultSlots[slot] = true end
+    end
+    local vaultSlotIndex = 1
+    local moves = {}
+    local remainingAmount = totalAmount
+    for _, itemInfo in ipairs(targetItems) do
+        local amount = getItemAmount(itemInfo.item)
+        if remainingAmount - amount < amountToKeep then
+            continue
+        end
+        local srcSlot = itemInfo.slotName or (itemInfo.item and itemInfo.item:GetAttribute("Slot"))
+        if not srcSlot then
+            continue
+        end
+        while vaultSlotIndex <= 195 and occupiedVaultSlots["Container" .. vaultSlotIndex] do
+            vaultSlotIndex += 1
+        end
+        if vaultSlotIndex > 195 then
+            break
+        end
+        local destSlot = "Container" .. vaultSlotIndex
+        occupiedVaultSlots[destSlot] = true
+        vaultSlotIndex += 1
+        remainingAmount -= amount
+        table.insert(moves, {
+            src = srcSlot,
+            dest = destSlot,
+            sourceInv = itemInfo.inventoryFolder,
+        })
+    end
+    for _, mv in ipairs(moves) do
+        InventoryMoveRemote:FireServer(mv.src, mv.dest, mv.sourceInv, vaultInv, nil)
+        task.wait(SpeedConfig.BetweenInventoryMoves)
+    end
+    dprint("Vault deposited", #moves, itemName, "stacks; kept amount", remainingAmount, "target keep", amountToKeep)
+    return #moves
+end
+local function hasNonFullSelectedItemSlot()
+    local context = getSelectedInventoryContext()
+    if not context then
+        return false
+    end
+    for _, itemInfo in ipairs(getAllLocalItemsByName(context.item.Name)) do
+        if itemInfo.item and not itemStackIsFull(itemInfo.item) then
+            return true
+        end
+    end
+    return false
+end
+local function initiateTradeWith(targetPlayer)
+    keepTradeMenuHidden(3)
+    return TradeRemote:InvokeServer({
+        Action = "Initiate",
+        TargetPlayer = targetPlayer,
+    })
+end
+local function runReceiverTradeExecutor(targetPlayer)
+    local selectedContext = getSelectedInventoryContext()
+    if not selectedContext or not targetPlayer then
+        return false
+    end
+    ensureTradeResponderStarted()
+    initiateTradeWith(targetPlayer)
+    task.wait(SpeedConfig.AfterInvite)
+    local receiverItem = getLargestAmountItemByName(selectedContext.item.Name) or selectedContext.item
+    local tradeList = {}
+    for i = 1, 6 do
+        table.insert(tradeList, receiverItem)
+    end
+    dprint("Receiver offered largest stack", selectedContext.item.Name, "amount", getItemAmount(receiverItem))
+    keepTradeMenuHidden(3)
+    TradeRemote:InvokeServer({ Action = "Update", TradeList = tradeList, TargetPlayer = targetPlayer })
+    task.wait(math.max(SpeedConfig.BeforeLock, SpeedConfig.ReceiverBeforeLockMin))
+    keepTradeMenuHidden(2)
+    TradeRemote:InvokeServer({ Action = "Lock" })
+    task.wait(SpeedConfig.AfterLock)
+    keepTradeMenuHidden(2)
+    TradeRemote:InvokeServer({ Action = "Confirm" })
+    return true
+end
+local function runGiverTradeAcceptor(targetPlayer)
+    if not targetPlayer then
+        return false
+    end
+    ensureInventorySystemsStarted()
+    local selectedContext = getSelectedInventoryContext()
+    giverTradeCycleCount += 1
+    local shouldOfferItems = giverTradeCycleCount >= GIVER_ITEM_OFFER_EVERY
+    if shouldOfferItems then
+        giverTradeCycleCount = 0
+    end
+    initiateTradeWith(targetPlayer)
+    task.wait(SpeedConfig.AfterInvite)
+    if shouldOfferItems and selectedContext and selectedContext.item then
+        local tradeList = collectTradeItemsByName(selectedContext.item.Name, 6)
+        if #tradeList > 0 then
+            keepTradeMenuHidden(3)
+            TradeRemote:InvokeServer({ Action = "Update", TradeList = tradeList, TargetPlayer = targetPlayer })
+            dprint("Giver offered", #tradeList, selectedContext.item.Name, "stack(s) on cycle", GIVER_ITEM_OFFER_EVERY)
+        else
+            dprint("Giver has no trade item to offer", selectedContext.item.Name)
+        end
+    else
+        dprint("Giver skipped item offer; cycle", giverTradeCycleCount, "of", GIVER_ITEM_OFFER_EVERY)
+    end
+    task.wait(SpeedConfig.BeforeLock)
+    keepTradeMenuHidden(2)
+    TradeRemote:InvokeServer({ Action = "Lock" })
+    task.wait(SpeedConfig.AfterLock)
+    keepTradeMenuHidden(2)
+    TradeRemote:InvokeServer({ Action = "Confirm" })
+    if shouldOfferItems and selectedContext and selectedContext.item then
+        task.wait(SpeedConfig.GiverPostOfferRefreshDelay)
+        refreshReplicatedInventoryView(true)
+        task.wait(SpeedConfig.GiverPostOfferSelectDelay)
+        selectFirstMatchingItem(selectedContext.item.Name)
+    end
+    return true
+end
+local function spreadSelectedItemAcrossInventory()
+    local selectedContext = getSelectedInventoryContext()
+    if not selectedContext then
+        return 0
+    end
+    local moved = 0
+    local containersByGear = select(1, collectInventoryContainers())
+    for _, containerInfo in pairs(containersByGear) do
+        local occupiedSlots = {}
+        for _, item in ipairs(containerInfo.inventoryFolder:GetChildren()) do
+            local slot = item:GetAttribute("Slot")
+            if slot then
+                occupiedSlots[slot] = true
+            end
+        end
+        for _, destSlot in ipairs(getSlotNamesForContainer(containerInfo)) do
+            if moved >= getItemAmount(selectedContext.item) then
+                return moved
+            end
+            if not (containerInfo.gearName == selectedContext.gearName and destSlot == selectedContext.slotName) and not occupiedSlots[destSlot] then
+                InventoryMoveRemote:FireServer(selectedContext.slotName, destSlot, selectedContext.inventoryFolder, containerInfo.inventoryFolder, 1)
+                occupiedSlots[destSlot] = true
+                moved += 1
+                task.wait(SpeedConfig.BetweenInventoryMoves)
+            end
+        end
+    end
+    return moved
+end
+local function runBridgeTradeCycle(partnerData)
+    if bridgeBusy or isShutdown or not automationState.enabled then
+        dprint("Cycle blocked: busy/shutdown/local off", "busy", bridgeBusy, "shutdown", isShutdown, "enabled", automationState.enabled)
+        return
+    end
+    if os.clock() - bridgeLastTradeAt < 1.5 then
+        dprint("Cycle blocked: cooldown", os.clock() - bridgeLastTradeAt)
+        return
+    end
+    if not partnerData or not valueIsEnabled(partnerData.enabled) then
+        dprint("Cycle blocked: partner off/missing", partnerData and partnerData.username, partnerData and tostring(partnerData.enabled))
+        setAutomationStatus("Pair toggle off", TopTheme.Muted)
+        return
+    end
+    local partnerRole = tostring(partnerData.role or "")
+    if partnerRole == automationState.role then
+        dprint("Cycle blocked: same role", automationState.role, partnerRole)
+        setAutomationStatus("Waiting opposite role", TopTheme.Muted)
+        return
+    end
+    local partnerName = partnerData.username or partnerData.name or partnerData.playerName
+    local targetPlayer = partnerName and Players:FindFirstChild(partnerName)
+    if not targetPlayer and partnerName then
+        local okWait, waitedPlayer = pcall(function()
+            return Players:WaitForChild(partnerName, 2)
+        end)
+        if okWait then
+            targetPlayer = waitedPlayer
+        end
+    end
+    if not targetPlayer then
+        dprint("Cycle blocked: partner not in Players", tostring(partnerName))
+        setAutomationStatus("Pair not in server", TopTheme.Accent)
+        return
+    end
+    automationState.partnerName = targetPlayer.Name
+    if invPartnerBox then
+        invPartnerBox.Text = targetPlayer.Name
+    end
+    if tradeDupePartnerBox then
+        tradeDupePartnerBox.Text = targetPlayer.Name
+    end
+    local pairSelectedItem = partnerData.selectedItem or partnerData.selectedItemName
+    if (not pairSelectedItem or pairSelectedItem == "") and automationState.selectedItemName ~= "" then
+        pairSelectedItem = automationState.selectedItemName
+    end
+    if pairSelectedItem and pairSelectedItem ~= "" then
+        if not selectFirstMatchingItem(pairSelectedItem) then
+            dprint("Selected item not found locally", tostring(pairSelectedItem), "partner", tostring(partnerName))
+            setAutomationStatus("Missing item: " .. tostring(pairSelectedItem), TopTheme.Accent)
+            return
+        end
+    else
+        dprint("Cycle blocked: no selected item from pair/local", tostring(partnerName))
+        setAutomationStatus("Select item first", TopTheme.Accent)
+        return
+    end
+    local selectedContext = getSelectedInventoryContext()
+    if not selectedContext then
+        dprint("No selected context after pair sync", tostring(pairSelectedItem))
+        setAutomationStatus("Pair has no selected item here", TopTheme.Accent)
+        return
+    end
+    if pairSelectedItem and pairSelectedItem ~= "" and selectedContext.item.Name ~= pairSelectedItem then
+        dprint("Selected context mismatch", selectedContext.item.Name, pairSelectedItem)
+        setAutomationStatus("Selected item mismatch", TopTheme.Accent)
+        return
+    end
+    bridgeBusy = true
+    dprint("Cycle starting", "role", automationState.role, "partner", targetPlayer.Name, "item", selectedContext.item.Name)
+    task.spawn(function()
+        local ok, err = pcall(function()
+            if automationState.role == "giver" and allTargetStacksAreFull(selectedContext.item.Name) and not isNextGiverItemOfferCycle() then
+                setAutomationStatus("Vaulting excess stacks", TopTheme.Success)
+                depositExcessTargetItemToVault(selectedContext.item.Name)
+                task.wait(SpeedConfig.GiverVaultRefreshDelay)
+                refreshReplicatedInventoryView(true)
+                task.wait(SpeedConfig.GiverVaultSelectDelay)
+                selectFirstMatchingItem(selectedContext.item.Name)
+            elseif automationState.role == "giver" and isNextGiverItemOfferCycle() then
+                setAutomationStatus("Keeping full stacks for receiver", TopTheme.Success)
+            end
+            if automationState.role == "receiver" then
+                setAutomationStatus("Receiver executing trade", TopTheme.Success)
+                runReceiverTradeExecutor(targetPlayer)
+            elseif automationState.role == "giver" then
+                setAutomationStatus("Giver accepting trade", TopTheme.Success)
+                runGiverTradeAcceptor(targetPlayer)
+            end
+        end)
+        bridgeLastTradeAt = os.clock()
+        bridgeBusy = false
+        if ok then
+            setAutomationStatus("Cycle sent", TopTheme.Success)
+        else
+            setAutomationStatus("Cycle failed: " .. tostring(err), TopTheme.Accent)
+        end
+    end)
+end
+ensureBridgeLoopStarted = function()
+    if bridgeThreadStarted then
+        return
+    end
+    bridgeThreadStarted = true
+    task.spawn(function()
+        while not isShutdown and automationState.enabled do
+            task.wait(SpeedConfig.BridgePollInterval)
+            if automationState.sessionCode ~= "" then
+                local ok, result = pcall(function()
+                    publishBridgeState()
+                    return pollBridgePair()
+                end)
+                if ok and result then
+                    local partner = result.partner or result.peer or result.other or result
+                    if partner and tostring(partner.userId or "") ~= tostring(LP.UserId) and partner.username ~= LP.Name then
+                        dprint("Pair received", "selfRole", automationState.role, "selfEnabled", tostring(automationState.enabled), "partner", tostring(partner.username), "partnerRole", tostring(partner.role), "partnerEnabled", tostring(partner.enabled), "partnerItem", tostring(partner.selectedItem))
+                        local partnerToggleVersion = getToggleVersion(partner)
+                        if partnerToggleVersion > automationState.toggleVersion and partnerToggleVersion > automationState.lastSeenPartnerToggleVersion then
+                            automationState.lastSeenPartnerToggleVersion = partnerToggleVersion
+                            automationState.toggleVersion = partnerToggleVersion
+                            automationState.enabled = valueIsEnabled(partner.enabled)
+                            renderAutomationToggles()
+                            setAutomationStatus(automationState.enabled and "Bridge enabled by pair" or "Bridge disabled by pair", automationState.enabled and TopTheme.Success or TopTheme.Muted)
+                        end
+                        if automationState.enabled == true and valueIsEnabled(partner.enabled) then
+                            runBridgeTradeCycle(partner)
+                        end
+                    else
+                        setAutomationStatus("Waiting pair", TopTheme.Muted)
+                    end
+                else
+                    setAutomationStatus("Bridge API failed", TopTheme.Accent)
+                end
+            end
+        end
+    end)
+end
+
+-- ============================================================
+-- NEW SCALING FUNCTIONS (ADDED)
+-- ============================================================
+local function scaleInventoryUI()
+    if not manualInventoryFrame then return end
+    manualInventoryFrame.Size = UDim2.new(1, 0, 0, 500)   -- Full width, fixed height
+    manualInventoryFrame.Position = UDim2.new(0, 0, 0.04, 0) -- Left edge
+    local s = manualInventoryFrame:FindFirstChild("ToolHubUIScale")
+    if s then s.Scale = 1
+    else
+        s = Instance.new("UIScale")
+        s.Name = "ToolHubUIScale"
+        s.Parent = manualInventoryFrame
+        s.Scale = 1
+    end
+end
+
+local function shrinkButtons()
+    if not manualInventoryFrame then return end
+    local modeHost = manualInventoryFrame:FindFirstChild("ToolHubModeHost")
+    if not modeHost then return end
+    for _, btn in ipairs(modeHost:GetDescendants()) do
+        if btn:IsA("TextButton") then
+            btn.Size = UDim2.new(0, 80, 0, 28)
+            btn.TextSize = 10
+        end
+    end
+    local sb = modeHost:FindFirstChild("TextBox")
+    if sb then
+        sb.Size = UDim2.new(0, 150, 0, 28)
+        sb.TextSize = 10
+    end
+    local tb = modeHost:FindFirstChild("BridgeToggle")
+    if tb then
+        tb.Size = UDim2.new(0, 90, 0, 28)
+        tb.TextSize = 10
+    end
+end
+
+local function hideCloseButton()
+    if not manualInventoryFrame then return end
+    local modeHost = manualInventoryFrame:FindFirstChild("ToolHubModeHost")
+    if not modeHost then return end
+    for _, btn in ipairs(modeHost:GetDescendants()) do
+        if btn:IsA("TextButton") and btn.Text == "x" then
+            btn.Visible = false
+            break
+        end
+    end
+end
+-- ============================================================
+
+local function buildUnifiedHub()
+    SG.Enabled = true
+    if BootstrapFrame then
+        BootstrapFrame.Visible = false
+    end
+    local template = nil
+    manualRoot = Instance.new("Frame")
+    manualRoot.Name = "UnifiedHub"
+    manualRoot.Size = UDim2.new(1, 0, 1, 0)
+    manualRoot.Position = UDim2.new(0, 0, 0, 0)
+    manualRoot.BackgroundTransparency = 1
+    manualRoot.BorderSizePixel = 0
+    manualRoot.Parent = SG
+    manualRoot.Visible = scriptInterfaceVisible
+    manualControlPanel = nil
+    manualTradePanel = nil
+    manualInventoryFrame = buildInventoryFrameFromBlueprint(manualRoot)
+    if manualInventoryFrame then
+        manualInventoryFrame.AnchorPoint = Vector2.new(0, 0)
+        manualInventoryFrame.Position = UDim2.new(0, 20, 0, 92)
+        manualInventoryFrame.Size = UDim2.new(0, 760, 0, 560)
+        manualInventoryFrame.Active = true
+        manualInventoryFrame.ClipsDescendants = false
+        local dragHandle = Instance.new("TextButton")
+        dragHandle.Name = "ToolHubDragHandle"
+        dragHandle.Text = ""
+        dragHandle.AutoButtonColor = false
+        dragHandle.BackgroundTransparency = 1
+        dragHandle.BorderSizePixel = 0
+        dragHandle.Size = UDim2.new(1, 0, 0, 42)
+        dragHandle.Position = UDim2.new(0, 0, 0, 0)
+        dragHandle.ZIndex = 1000
+        dragHandle.Parent = manualInventoryFrame
+        attachManualDrag(manualInventoryFrame, dragHandle)
+    else
+        template = waitForTemplateInventoryFrame(6)
+    end
+    if not manualInventoryFrame and template then
+        manualInventoryFrame = template:Clone()
+        clearScripts(manualInventoryFrame)
+        manualInventoryFrame.Parent = manualRoot
+        manualInventoryFrame.AnchorPoint = template.AnchorPoint
+        manualInventoryFrame.Position = template.Position + UDim2.new(0, 40, 0, 42)
+        manualInventoryFrame.Size = template.Size
+        manualInventoryFrame.Rotation = template.Rotation
+        if manualInventoryFrame:IsA("GuiObject") then
+            manualInventoryFrame.Visible = true
+            manualInventoryFrame.Active = true
+            manualInventoryFrame.ClipsDescendants = false
+        end
+        forceVisibleRecursive(manualInventoryFrame)
+        normalizeClonedInventoryVisuals(manualInventoryFrame)
+        local dragHandle = Instance.new("TextButton")
+        dragHandle.Name = "ToolHubDragHandle"
+        dragHandle.Text = ""
+        dragHandle.AutoButtonColor = false
+        dragHandle.BackgroundTransparency = 1
+        dragHandle.BorderSizePixel = 0
+        dragHandle.Size = UDim2.new(1, 0, 0, 42)
+        dragHandle.Position = UDim2.new(0, 0, 0, 0)
+        dragHandle.ZIndex = 1000
+        dragHandle.Parent = manualInventoryFrame
+        attachManualDrag(manualInventoryFrame, dragHandle)
+    elseif not manualInventoryFrame then
+        manualInventoryFrame = createFallbackInventoryFrame(manualRoot)
+        manualInventoryFrame.AnchorPoint = Vector2.new(0, 0)
+        manualInventoryFrame.Position = UDim2.new(0, 20, 0, 92)
+        manualInventoryFrame.Size = UDim2.new(0, 760, 0, 560)
+        manualInventoryFrame.Active = true
+        manualInventoryFrame.ClipsDescendants = false
+        local dragHandle = Instance.new("TextButton")
+        dragHandle.Name = "ToolHubDragHandle"
+        dragHandle.Text = ""
+        dragHandle.AutoButtonColor = false
+        dragHandle.BackgroundTransparency = 1
+        dragHandle.BorderSizePixel = 0
+        dragHandle.Size = UDim2.new(1, 0, 0, 42)
+        dragHandle.Position = UDim2.new(0, 0, 0, 0)
+        dragHandle.ZIndex = 1000
+        dragHandle.Parent = manualInventoryFrame
+        attachManualDrag(manualInventoryFrame, dragHandle)
+    end
+    mapSlotFrames(manualInventoryFrame)
+    restyleClonedInventoryFrame(manualInventoryFrame)
+    local modeHost = Instance.new("Frame")
+    modeHost.Name = "ToolHubModeHost"
+    modeHost.Size = UDim2.new(1, 0, 0, 140)
+    modeHost.Position = UDim2.new(0, 0, 0, -140)
+    modeHost.BackgroundColor3 = TopTheme.Background2
+    modeHost.BorderSizePixel = 0
+    modeHost.ClipsDescendants = true
+    modeHost.ZIndex = 10020
+    modeHost.Parent = manualInventoryFrame
+    corner(modeHost, 4)
+    stroke(modeHost, TopTheme.Outline, 1, 0)
+    local modeBar = Instance.new("Frame")
+    modeBar.Size = UDim2.new(1, -12, 1, -12)
+    modeBar.Position = UDim2.new(0, 6, 0, 6)
+    modeBar.BackgroundColor3 = TopTheme.SectionTop
+    modeBar.BorderSizePixel = 0
+    modeBar.ZIndex = 10021
+    modeBar.Parent = modeHost
+    corner(modeBar, 4)
+    stroke(modeBar, TopTheme.Outline, 1, 0)
+    local topRow = Instance.new("Frame")
+    topRow.Size = UDim2.new(1, -12, 0, 32)
+    topRow.Position = UDim2.new(0, 6, 0, 6)
+    topRow.BackgroundTransparency = 1
+    topRow.ZIndex = 10021
+    topRow.Parent = modeBar
+    local headerIcon = Instance.new("ImageLabel")
+    headerIcon.Size = UDim2.new(0, 16, 0, 16)
+    headerIcon.Position = UDim2.new(0, 10, 0.5, -8)
+    headerIcon.BackgroundTransparency = 1
+    headerIcon.Image = "rbxassetid://6034509993"
+    headerIcon.ZIndex = 10022
+    headerIcon.Parent = topRow
+    applyVerticalAccentGradient(headerIcon)
+    local modePrompt = Instance.new("TextLabel")
+    modePrompt.Size = UDim2.new(0, 82, 1, 0)
+    modePrompt.Position = UDim2.new(0, 34, 0, 0)
+    modePrompt.BackgroundTransparency = 1
+    modePrompt.Text = "Bridge"
+    modePrompt.TextXAlignment = Enum.TextXAlignment.Left
+    modePrompt.Font = Enum.Font.GothamBold
+    modePrompt.TextSize = 13
+    modePrompt.TextColor3 = TopTheme.Text
+    modePrompt.TextStrokeTransparency = 1
+    modePrompt.ZIndex = 10021
+    modePrompt.Parent = topRow
+    local roleHost = Instance.new("Frame")
+    roleHost.Size = UDim2.new(0, 180, 0, 32)
+    roleHost.Position = UDim2.new(0, 118, 0, 0)
+    roleHost.BackgroundTransparency = 1
+    roleHost.ZIndex = 10021
+    roleHost.Parent = topRow
+    local spreadModeButton = createLibraryHeaderButton(roleHost, "Giver", 84, 6034509993)
+    spreadModeButton.Position = UDim2.new(0, 0, 0, 0)
+    spreadModeButton.ZIndex = 10021
+    local tradeModeButton = createLibraryHeaderButton(roleHost, "Receiver", 90, 81598136527047)
+    tradeModeButton.Position = UDim2.new(0, 90, 0, 0)
+    tradeModeButton.ZIndex = 10021
+    automationRoleRefs.giver = spreadModeButton
+    automationRoleRefs.receiver = tradeModeButton
+    capacityStatusLabel = Instance.new("TextLabel")
+    capacityStatusLabel.Size = UDim2.new(1, -452, 1, 0)
+    capacityStatusLabel.Position = UDim2.new(0, 306, 0, 0)
+    capacityStatusLabel.BackgroundTransparency = 1
+    capacityStatusLabel.Text = "Vault 0/0 | Inv 0/0"
+    capacityStatusLabel.TextXAlignment = Enum.TextXAlignment.Left
+    capacityStatusLabel.Font = Enum.Font.GothamBold
+    capacityStatusLabel.TextSize = 12
+    capacityStatusLabel.TextColor3 = TopTheme.Text
+    capacityStatusLabel.TextStrokeTransparency = 1
+    capacityStatusLabel.ZIndex = 10022
+    capacityStatusLabel.Parent = topRow
+    vaultFullWarningLabel = Instance.new("TextLabel")
+    vaultFullWarningLabel.AnchorPoint = Vector2.new(0.5, 0.5)
+    vaultFullWarningLabel.Position = UDim2.new(0.5, 0, 0.5, 0)
+    vaultFullWarningLabel.Size = UDim2.new(0, 520, 0, 70)
+    vaultFullWarningLabel.BackgroundTransparency = 1
+    vaultFullWarningLabel.Text = "YOUR VAULT IS FULL!!!\nEVERY ITEM WILL BE DROPPED FROM NOW ON."
+    vaultFullWarningLabel.TextColor3 = Color3.fromRGB(255, 45, 45)
+    vaultFullWarningLabel.TextStrokeColor3 = Color3.fromRGB(30, 0, 0)
+    vaultFullWarningLabel.TextStrokeTransparency = 0.25
+    vaultFullWarningLabel.TextWrapped = true
+    vaultFullWarningLabel.TextXAlignment = Enum.TextXAlignment.Center
+    vaultFullWarningLabel.TextYAlignment = Enum.TextYAlignment.Center
+    vaultFullWarningLabel.Font = Enum.Font.GothamBold
+    vaultFullWarningLabel.TextSize = 24
+    vaultFullWarningLabel.ZIndex = 1000000
+    vaultFullWarningLabel.Visible = false
+    vaultFullWarningLabel.Parent = SG
+    updateCapacityStatus()
+    startCapacityStatusLoop()
+    local vaultActionsRow = Instance.new("Frame")
+    vaultActionsRow.Size = UDim2.new(1, -12, 0, 34)
+    vaultActionsRow.Position = UDim2.new(0, 6, 0, 40)
+    vaultActionsRow.BackgroundTransparency = 1
+    vaultActionsRow.ZIndex = 10021
+    vaultActionsRow.Parent = modeBar
+    local dropRowBtn = Instance.new("TextButton")
+    dropRowBtn.Size = UDim2.new(0, 90, 0, 28)
+    dropRowBtn.Position = UDim2.new(1, -194, 0, 3)
+    dropRowBtn.BackgroundColor3 = TopTheme.Element
+    dropRowBtn.BorderSizePixel = 0
+    dropRowBtn.Text = "DROP ROW"
+    dropRowBtn.TextColor3 = TopTheme.Text
+    dropRowBtn.Font = Enum.Font.GothamBold
+    dropRowBtn.TextSize = 11
+    dropRowBtn.TextStrokeTransparency = 1
+    dropRowBtn.AutoButtonColor = false
+    dropRowBtn.ClipsDescendants = true
+    dropRowBtn.ZIndex = 10021
+    dropRowBtn.Parent = vaultActionsRow
+    corner(dropRowBtn, 4)
+    stroke(dropRowBtn, TopTheme.Outline, 1, 0)
+    local dropRowFill = Instance.new("Frame")
+    dropRowFill.Size = UDim2.new(0, 0, 1, 0)
+    dropRowFill.BackgroundColor3 = TopTheme.SectionTop
+    dropRowFill.BorderSizePixel = 0
+    dropRowFill.ZIndex = 10021
+    dropRowFill.Parent = dropRowBtn
+    corner(dropRowFill, 4)
+    dropRowBtn.MouseEnter:Connect(function()
+        dropRowFill:TweenSize(UDim2.new(1, 0, 1, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.2, true)
+    end)
+    dropRowBtn.MouseLeave:Connect(function()
+        dropRowFill:TweenSize(UDim2.new(0, 0, 1, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.2, true)
+    end)
+    dropRowBtn.MouseButton1Click:Connect(function()
+        dropRowBtn.Text = "DROPPING"
+        dropRowBtn.Active = false
+        task.spawn(function()
+            local count = dropVaultRow()
+            if not isShutdown then
+                dropRowBtn.Text = count > 0 and ("DROPPED " .. count) or "ROW DONE"
+                task.delay(1, function()
+                    if dropRowBtn and dropRowBtn.Parent and not isShutdown then
+                        dropRowBtn.Text = "DROP ROW"
+                        dropRowBtn.Active = true
+                    end
+                end)
+            end
+        end)
+    end)
+    local dropVaultBtn = Instance.new("TextButton")
+    dropVaultBtn.Size = UDim2.new(0, 98, 0, 28)
+    dropVaultBtn.Position = UDim2.new(1, -98, 0, 3)
+    dropVaultBtn.BackgroundColor3 = TopTheme.Element
+    dropVaultBtn.BorderSizePixel = 0
+    dropVaultBtn.Text = "DROP VAULT"
+    dropVaultBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
+    dropVaultBtn.Font = Enum.Font.GothamBold
+    dropVaultBtn.TextSize = 11
+    dropVaultBtn.TextStrokeTransparency = 1
+    dropVaultBtn.AutoButtonColor = false
+    dropVaultBtn.ClipsDescendants = true
+    dropVaultBtn.ZIndex = 10021
+    dropVaultBtn.Parent = vaultActionsRow
+    corner(dropVaultBtn, 4)
+    stroke(dropVaultBtn, Color3.fromRGB(180, 50, 50), 1, 0)
+    local dropVaultFill = Instance.new("Frame")
+    dropVaultFill.Size = UDim2.new(0, 0, 1, 0)
+    dropVaultFill.BackgroundColor3 = TopTheme.Accent
+    dropVaultFill.BorderSizePixel = 0
+    dropVaultFill.ZIndex = 10021
+    dropVaultFill.Parent = dropVaultBtn
+    corner(dropVaultFill, 4)
+    applyVerticalAccentGradient(dropVaultFill)
+    dropVaultBtn.MouseEnter:Connect(function()
+        dropVaultFill:TweenSize(UDim2.new(1, 0, 1, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.2, true)
+    end)
+    dropVaultBtn.MouseLeave:Connect(function()
+        dropVaultFill:TweenSize(UDim2.new(0, 0, 1, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.2, true)
+    end)
+    dropVaultBtn.MouseButton1Click:Connect(function()
+        dropVaultBtn.Text = "DROPPING..."
+        dropVaultBtn.Active = false
+        task.spawn(function()
+            local count = dropWholeVault()
+            if not isShutdown then
+                dropVaultBtn.Text = count > 0 and ("DROPPED " .. count) or "VAULT EMPTY"
+                task.delay(1, function()
+                    if dropVaultBtn and dropVaultBtn.Parent and not isShutdown then
+                        dropVaultBtn.Text = "DROP VAULT"
+                        dropVaultBtn.Active = true
+                    end
+                end)
+            end
+        end)
+    end)
+    local bridgeRow = Instance.new("Frame")
+    bridgeRow.Size = UDim2.new(1, -12, 0, 34)
+    bridgeRow.Position = UDim2.new(0, 6, 0, 76)
+    bridgeRow.BackgroundTransparency = 1
+    bridgeRow.ZIndex = 10021
+    bridgeRow.Parent = modeBar
+    local sessionBoxShell = Instance.new("Frame")
+    sessionBoxShell.Size = UDim2.new(1, -116, 0, 28)
+    sessionBoxShell.Position = UDim2.new(0, 0, 0, 3)
+    sessionBoxShell.BackgroundColor3 = TopTheme.Element
+    sessionBoxShell.BorderSizePixel = 0
+    sessionBoxShell.ZIndex = 10021
+    sessionBoxShell.Parent = bridgeRow
+    corner(sessionBoxShell, 4)
+    stroke(sessionBoxShell, TopTheme.Outline, 1, 0)
+    local sessionBox = Instance.new("TextBox")
+    sessionBox.Size = UDim2.new(1, -12, 1, 0)
+    sessionBox.Position = UDim2.new(0, 6, 0, 0)
+    sessionBox.BackgroundTransparency = 1
+    sessionBox.ClearTextOnFocus = false
+    sessionBox.PlaceholderText = "shared-session-id"
+    sessionBox.Text = ""
+    sessionBox.Font = Enum.Font.Gotham
+    sessionBox.TextSize = 12
+    sessionBox.TextXAlignment = Enum.TextXAlignment.Left
+    sessionBox.TextColor3 = TopTheme.Text
+    sessionBox.PlaceholderColor3 = Color3.fromRGB(135, 135, 138)
+    sessionBox.TextStrokeTransparency = 1
+    sessionBox.ZIndex = 10022
+    sessionBox.Parent = sessionBoxShell
+    bindSessionBox(sessionBox)
+    local bridgeToggle = Instance.new("TextButton")
+    bridgeToggle.Size = UDim2.new(0, 104, 0, 28)
+    bridgeToggle.Position = UDim2.new(1, -104, 0, 3)
+    bridgeToggle.BackgroundColor3 = TopTheme.Element
+    bridgeToggle.BorderSizePixel = 0
+    bridgeToggle.Text = ""
+    bridgeToggle.AutoButtonColor = false
+    bridgeToggle.ClipsDescendants = true
+    bridgeToggle.ZIndex = 10021
+    bridgeToggle.Parent = bridgeRow
+    corner(bridgeToggle, 4)
+    stroke(bridgeToggle, TopTheme.Outline, 1, 0)
+    local bridgeToggleFill = Instance.new("Frame")
+    bridgeToggleFill.Size = UDim2.new(0, 0, 1, 0)
+    bridgeToggleFill.BackgroundColor3 = TopTheme.Accent
+    bridgeToggleFill.BorderSizePixel = 0
+    bridgeToggleFill.ZIndex = 10021
+    bridgeToggleFill.Parent = bridgeToggle
+    corner(bridgeToggleFill, 4)
+    applyVerticalAccentGradient(bridgeToggleFill)
+    local bridgeToggleLabel = Instance.new("TextLabel")
+    bridgeToggleLabel.Size = UDim2.new(1, 0, 1, 0)
+    bridgeToggleLabel.BackgroundTransparency = 1
+    bridgeToggleLabel.Font = Enum.Font.GothamBold
+    bridgeToggleLabel.TextSize = 11
+    bridgeToggleLabel.TextStrokeTransparency = 1
+    bridgeToggleLabel.TextColor3 = TopTheme.Text
+    bridgeToggleLabel.ZIndex = 10022
+    bridgeToggleLabel.Parent = bridgeToggle
+    local function renderBridgeToggle()
+        local enabled = automationState.enabled == true
+        bridgeToggleLabel.Text = enabled and "TOGGLE ON" or "TOGGLE OFF"
+        bridgeToggleFill.Visible = enabled
+        bridgeToggle.BackgroundColor3 = enabled and TopTheme.SectionTop or TopTheme.Element
+        if enabled then
+            bridgeToggleFill.Size = UDim2.new(1, 0, 1, 0)
+        else
+            bridgeToggleFill.Size = UDim2.new(0, 0, 1, 0)
+        end
+    end
+    table.insert(automationToggleRenderers, renderBridgeToggle)
+    bridgeToggle.MouseButton1Click:Connect(function()
+        automationState.enabled = not automationState.enabled
+        automationState.toggleVersion = math.max(automationState.toggleVersion + 1, os.time())
+        automationState.lastSeenPartnerToggleVersion = automationState.toggleVersion
+        renderAutomationToggles()
+        setAutomationStatus(automationState.enabled and "Bridge enabled" or "Bridge disabled", automationState.enabled and TopTheme.Success or TopTheme.Muted)
+        task.spawn(function()
+            local ok, err = pcall(publishBridgeState)
+            if not ok then
+                setAutomationStatus("Bridge publish failed", TopTheme.Accent)
+                dprint("Toggle publish failed", tostring(err))
+            end
+        end)
+        if automationState.enabled then
+            bridgeThreadStarted = false
+            autoAcceptEnabled = true
+            keepTradeMenuHidden(10)
+            ensureBridgeLoopStarted()
+            startAutomation()
+        else
+            suppressTradeNotifsAtStartup = false
+            tradeMenuHideUntil = 0
+            bridgeBusy = false
+            autoAcceptEnabled = false
+            currentTradePartner = nil
+            pcall(function()
+                RunService:UnbindFromRenderStep(TRADE_MENU_RENDER_BIND)
+            end)
+            tradeMenuHiderRunning = false
+        end
+    end)
+    renderBridgeToggle()
+    manualControlScroll = Instance.new("Frame")
+    manualControlScroll.Name = "SpreadContent"
+    manualControlScroll.Size = UDim2.new(0, 0, 0, 0)
+    manualControlScroll.Position = UDim2.new(0, 0, 0, 0)
+    manualControlScroll.BackgroundTransparency = 1
+    manualControlScroll.Visible = false
+    manualControlScroll.Parent = manualRoot
+    local spreadLayout = Instance.new("UIListLayout")
+    spreadLayout.Padding = UDim.new(0, 4)
+    spreadLayout.Parent = manualControlScroll
+    manualTradeScroll = Instance.new("Frame")
+    manualTradeScroll.Name = "TradeContent"
+    manualTradeScroll.Size = UDim2.new(0, 0, 0, 0)
+    manualTradeScroll.Position = UDim2.new(0, 0, 0, 0)
+    manualTradeScroll.BackgroundTransparency = 1
+    manualTradeScroll.Visible = false
+    manualTradeScroll.Parent = manualRoot
+    local tradeLayout = Instance.new("UIListLayout")
+    tradeLayout.Padding = UDim.new(0, 4)
+    tradeLayout.Parent = manualTradeScroll
+    local function setMode(modeName)
+        local spreadActive = modeName == "spread"
+        local tradeActive = modeName == "trade"
+        manualControlScroll.Visible = false
+        manualTradeScroll.Visible = false
+        setAutomationRole(spreadActive and "giver" or "receiver")
+    end
+    spreadModeButton.MouseButton1Click:Connect(function()
+        setMode("spread")
+    end)
+    tradeModeButton.MouseButton1Click:Connect(function()
+        setMode("trade")
+    end)
+    setMode("spread")
+    task.spawn(function()
+        while not isShutdown do
+            refreshReplicatedInventoryView(false)
+            task.wait(0.5)
+        end
+    end)
+    refreshReplicatedInventoryView(true)
+end
+local function buildInventoryMover()
+    local bridgeShell, bridgeBody = createSectionShell(manualControlScroll, "Giver Automation", 6034509993, 138)
+    local bridgeRole = createCompactStatus(bridgeBody, "Role: Giver")
+    bridgeRole.TextColor3 = TopTheme.Text
+    local bridgeCode = createCompactInput(bridgeBody, "Code", "")
+    bridgeCode.PlaceholderText = "same code as receiver"
+    bindSessionBox(bridgeCode)
+    local bridgeStatus = createCompactStatus(bridgeBody, automationState.status)
+    table.insert(automationStatusRefs, bridgeStatus)
+    local bridgeStart = createButton(bridgeBody, "Start Process")
+    bridgeStart.MouseButton1Click:Connect(function()
+        setAutomationRole("giver")
+        startAutomation()
+    end)
+    local actionShell, actionBody = createSectionShell(manualControlScroll, "Giver Controls", 81598136527047, 120)
+    invPartnerBox = createPlayerDropdown(actionBody, "Partner")
+    spreadSelectedLabel = nil
+    invStatusLabel = nil
+    invRunBtn = createButton(actionBody, "Spread")
+    runInventoryMove = function()
+        if isShutdown then return end
+        ensureInventorySystemsStarted()
+        if not invRunBtn.Active then return end
+        local selectedContext = getSelectedInventoryContext()
+        if not selectedContext then
+            invRunBtn.Text = "PICK ITEM"
+            return
+        end
+        invRunBtn.Active = false
+        invRunBtn.BackgroundColor3 = TopTheme.SectionTop
+        invRunBtn.Text = "RUNNING"
+        local remote = InventoryMoveRemote
+        local ok, err = pcall(function()
+            local calls = {}
+            local containersByGear = select(1, collectInventoryContainers())
+            for _, gearName in ipairs({"ClothingChestRig", "ClothingShirt", "ClothingPants", "ClothingBackpack"}) do
+                local containerInfo = containersByGear[gearName]
+                if containerInfo then
+                    local occupiedSlots = {}
+                    for _, item in ipairs(containerInfo.inventoryFolder:GetChildren()) do
+                        local slot = item:GetAttribute("Slot")
+                        if slot == nil and item:IsA("ObjectValue") and item.Value then
+                            slot = item.Value:GetAttribute("Slot")
+                        end
+                        if slot then
+                            occupiedSlots[slot] = true
+                        end
+                    end
+                    for _, destSlot in ipairs(getSlotNamesForContainer(containerInfo)) do
+                        if not (gearName == selectedContext.gearName and destSlot == selectedContext.slotName) and not occupiedSlots[destSlot] then
+                            table.insert(calls, {selectedContext.slotName, destSlot, selectedContext.inventoryFolder, containerInfo.inventoryFolder, 1})
+                        end
+                    end
+                end
+            end
+            for _, args in ipairs(calls) do
+                task.spawn(function()
+                    remote:FireServer(table.unpack(args))
+                end)
+            end
+        end)
+        if ok then
+            invRunBtn.Text = "DONE"
+            refreshReplicatedInventoryView(true)
+        else
+            invRunBtn.Text = "FAILED"
+        end
+        invRunBtn.Active = true
+        invRunBtn.BackgroundColor3 = TopTheme.Element
+        task.delay(0.9, function()
+            if invRunBtn and invRunBtn.Parent and not isShutdown then
+                invRunBtn.Text = "SPREAD"
+            end
+        end)
+    end
+    invRunBtn.MouseButton1Click:Connect(runInventoryMove)
+    updateSelectedItemLabels()
+end
+local function buildTradeExecutor()
+    local bridgeShell, bridgeBody = createSectionShell(manualTradeScroll, "Receiver Automation", 81598136527047, 138)
+    local bridgeRole = createCompactStatus(bridgeBody, "Role: Receiver")
+    bridgeRole.TextColor3 = TopTheme.Text
+    local bridgeCode = createCompactInput(bridgeBody, "Code", "")
+    bridgeCode.PlaceholderText = "same code as giver"
+    bindSessionBox(bridgeCode)
+    local bridgeStatus = createCompactStatus(bridgeBody, automationState.status)
+    table.insert(automationStatusRefs, bridgeStatus)
+    local bridgeStart = createButton(bridgeBody, "Start Process")
+    bridgeStart.MouseButton1Click:Connect(function()
+        setAutomationRole("receiver")
+        startAutomation()
+    end)
+    local actionShell, actionBody = createSectionShell(manualTradeScroll, "Receiver Controls", 6034509993, 120)
+    local partnerBox = createPlayerDropdown(actionBody, "Partner")
+    invPartnerBox = partnerBox
+    tradeDupePartnerBox = partnerBox
+    tradeSelectedLabel = nil
+    local runBtn = createButton(actionBody, "Execute")
+    runBtn.MouseButton1Click:Connect(function()
+        if isShutdown then return end
+        if not runBtn.Active then return end
+        local selectedContext = getSelectedInventoryContext()
+        if not selectedContext then
+            runBtn.Text = "PICK ITEM"
+            return
+        end
+        local partnerName = partnerBox.Text
+        local currentAmount = 6
+        local loopCount = 1
+        if not partnerName or partnerName == "" or partnerName == "EnterUsernameHere" then
+            runBtn.Text = "PICK PARTNER"
+            return
+        end
+        local targetPlayer = Players:FindFirstChild(partnerName)
+        if not targetPlayer then
+            runBtn.Text = "NO PLAYER"
+            return
+        end
+        ensureTradeResponderStarted()
+        runBtn.Text = "RUNNING"
+        runBtn.Active = false
+        runBtn.BackgroundColor3 = TopTheme.SectionTop
+        task.spawn(function()
+            local allOk = true
+            for loop = 1, loopCount do
+                if isShutdown then break end
+                runBtn.Text = "RUNNING"
+                local ok, err = pcall(function()
+                    keepTradeMenuHidden(3)
+                    TradeRemote:InvokeServer({ Action = "Initiate", TargetPlayer = targetPlayer })
+                    task.wait(SpeedConfig.AfterInvite)
+                    if isShutdown then return end
+                    local lowRublesStacks = false
+                    pcall(function()
+                        local shirtInv = RS.Players[LP.Name].Inventory.WastelandShirt.Inventory
+                        local fullStacks = 0
+                        for _, item in ipairs(shirtInv:GetChildren()) do
+                            if item.Name == "Rubles" and item:GetAttribute("Amount") == FULL_RUBLES_STACK_AMOUNT then
+                                fullStacks += 1
+                            end
+                        end
+                        lowRublesStacks = fullStacks <= 3
+                    end)
+                    local sourceInvObj = selectedContext.inventoryFolder
+                    local tradeList = {}
+                    for i = 1, currentAmount do
+                        table.insert(tradeList, selectedContext.item)
+                    end
+                    keepTradeMenuHidden(3)
+                    TradeRemote:InvokeServer({ Action = "Update", TradeList = tradeList, TargetPlayer = targetPlayer })
+                    task.wait(SpeedConfig.ExtraUpdateYield)
+                    for _, extraItem in ipairs(sourceInvObj:GetChildren()) do
+                        if extraItem ~= selectedContext.item and extraItem.Name == selectedContext.item.Name then
+                            local extraList = {}
+                            for i = 1, currentAmount do
+                                table.insert(extraList, extraItem)
+                            end
+                            keepTradeMenuHidden(3)
+                            TradeRemote:InvokeServer({ Action = "Update", TradeList = extraList, TargetPlayer = targetPlayer })
+                            task.wait(SpeedConfig.ExtraUpdateYield)
+                        end
+                    end
+                    if lowRublesStacks then
+                        task.wait(SpeedConfig.LowStackRefillWaitAfterDupeUpdate)
+                        if isShutdown then return end
+                    end
+                    task.wait(math.max(SpeedConfig.BeforeLock, SpeedConfig.ReceiverBeforeLockMin))
+                    if isShutdown then return end
+                    keepTradeMenuHidden(2)
+                    TradeRemote:InvokeServer({ Action = "Lock", TargetPlayer = targetPlayer })
+                    task.wait(SpeedConfig.AfterLock)
+                    if isShutdown then return end
+                    keepTradeMenuHidden(2)
+                    TradeRemote:InvokeServer({ Action = "Confirm", TargetPlayer = targetPlayer })
+                    task.wait(SpeedConfig.AfterConfirm)
+                end)
+                if not ok then
+                    allOk = false
+                    runBtn.Text = "FAILED"
+                    break
+                end
+                if loop < loopCount then
+                    runBtn.Text = "RUNNING"
+                    task.wait(SpeedConfig.BetweenLoops)
+                end
+            end
+            if allOk and not isShutdown then
+                runBtn.Text = "DONE"
+            end
+            runBtn.Active = true
+            runBtn.BackgroundColor3 = TopTheme.Element
+            task.delay(0.9, function()
+                if runBtn and runBtn.Parent and not isShutdown then
+                    runBtn.Text = "EXECUTE"
+                end
+            end)
+        end)
+    end)
+    updateSelectedItemLabels()
+end
+local function sendPantsRefill(tradeRemote, targetPlayer)
+    if automationState.role ~= "giver" then
+        return
+    end
+    local pantsInv
+    local ok = pcall(function()
+        pantsInv = RS.Players[LP.Name].Inventory.WastelandPants.Inventory
+    end)
+    if not ok or not pantsInv then
+        dprint("⚠ [Pants] Could not access WastelandPants inventory")
+        return
+    end
+    local tradeList = {}
+    for _, item in ipairs(pantsInv:GetChildren()) do
+        if item.Name == "Rubles" and item:GetAttribute("Amount") == FULL_RUBLES_STACK_AMOUNT then
+            table.insert(tradeList, item)
+            if #tradeList >= 2 then break end
+        end
+    end
+    if #tradeList == 0 then
+        dprint("⚠ [Pants] No full Rubles stacks in WastelandPants")
+        return
+    end
+    local payload = { Action = "Update", TradeList = tradeList }
+    if targetPlayer then payload.TargetPlayer = targetPlayer end
+    local ok2, err2 = pcall(function()
+        keepTradeMenuHidden(3)
+        tradeRemote:InvokeServer(payload)
+    end)
+    if ok2 then
+        dprint("✅ [Pants] Sent", #tradeList, "Rubles stack(s) from WastelandPants")
+    else
+        dprint("❌ [Pants] Send failed:", tostring(err2))
+    end
+end
+local function sendBackpackRublesRefillIfLow(tradeRemote, partnerName, targetPlayer, reason)
+    if isShutdown then return false end
+    if automationState.role ~= "giver" then return false end
+    if not partnerName or partnerName == "" or partnerName == "EnterUsernameHere" then return false end
+    if not targetPlayer then
+        targetPlayer = Players:FindFirstChild(partnerName)
+    end
+    if not targetPlayer then
+        dprint("⚠ [Refill] No TargetPlayer for", tostring(partnerName), "reason:", tostring(reason))
+        return false
+    end
+    local shirtInv
+    local shirtOk = pcall(function()
+        shirtInv = RS.Players[partnerName].Inventory.WastelandShirt.Inventory
+    end)
+    if not shirtOk or not shirtInv then
+        dprint("⚠ [Refill] Could not read Trade Dupe WastelandShirt for", tostring(partnerName), "reason:", tostring(reason))
+        return false
+    end
+    local fullStacks = 0
+    for _, item in ipairs(shirtInv:GetChildren()) do
+        if item.Name == "Rubles" and item:GetAttribute("Amount") == FULL_RUBLES_STACK_AMOUNT then
+            fullStacks += 1
+        end
+    end
+    dprint("📊 [Refill] Trade Dupe WastelandShirt full Rubles stacks:", fullStacks, "reason:", tostring(reason))
+    if fullStacks > 3 then
+        return false
+    end
+    if os.clock() < earliestBackpackRublesRefillAt then
+        return false
+    end
+    if backpackRublesRefillSentThisTrade then
+        return false
+    end
+    local playerInv
+    local invOk = pcall(function()
+        playerInv = RS.Players[LP.Name].Inventory
+    end)
+    if not invOk or not playerInv then
+        dprint("⚠ [Refill] Could not access local Inventory")
+        return false
+    end
+    local activeBackpackPath = getActiveBackpackConfig().invPath
+    local sourcePriority = {
+        activeBackpackPath,
+        "WastelandPants",
+        "WastelandShirt",
+    }
+    local seenSources = {}
+    local tradeList = {}
+    local usedSources = {}
+    local function collectFullStacksFrom(invName)
+        if #tradeList >= 2 then return end
+        if seenSources[invName] then return end
+        seenSources[invName] = true
+        local invObj
+        local okInv = pcall(function()
+            invObj = playerInv[invName].Inventory
+        end)
+        if not okInv or not invObj then
+            dprint("⚠ [Refill] Source not available:", tostring(invName))
+            return
+        end
+        for _, item in ipairs(invObj:GetChildren()) do
+            if item.Parent == invObj and item.Name == "Rubles" and item:GetAttribute("Amount") == FULL_RUBLES_STACK_AMOUNT then
+                table.insert(tradeList, item)
+                table.insert(usedSources, invName)
+                if #tradeList >= 2 then break end
+            end
+        end
+    end
+    for _, invName in ipairs(sourcePriority) do
+        collectFullStacksFrom(invName)
+        if #tradeList >= 2 then break end
+    end
+    if #tradeList < 2 then
+        dprint("⚠ [Refill] Need 2 full Rubles stacks, found", #tradeList, "sources tried:", table.concat(sourcePriority, ", "))
+        return false
+    end
+    if invStatusLabel then
+        invStatusLabel.Text = "Refilling"
+        invStatusLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
+    end
+    backpackRublesRefillSentThisTrade = true
+    local ok, err = pcall(function()
+        keepTradeMenuHidden(3)
+        tradeRemote:InvokeServer({
+            Action       = "Update",
+            TradeList    = tradeList,
+            TargetPlayer = targetPlayer
+        })
+    end)
+    if ok then
+        lastBackpackRublesRefillAt = os.clock()
+        dprint("✅ [Refill] Sent 2 Rubles stack(s); sources:", table.concat(usedSources, ", "), "reason:", tostring(reason))
+        return true
+    else
+        backpackRublesRefillSentThisTrade = false
+        dprint("❌ [Refill] Failed:", tostring(err), "reason:", tostring(reason))
+        return false
+    end
+end
+local function setupRublesRefillWatcher()
+    local tradeRemote = TradeRemote
+    task.spawn(function()
+        while not isShutdown do
+            task.wait(SpeedConfig.RublesRefillWatcherInterval)
+            if automationState.role ~= "giver" then
+                continue
+            end
+            local partnerName = invPartnerBox and invPartnerBox.Text or ""
+            if partnerName == "" or partnerName == "EnterUsernameHere" then
+                continue
+            end
+            local targetPlayer = currentTradePartner or Players:FindFirstChild(partnerName)
+            if not targetPlayer then
+                continue
+            end
+            sendBackpackRublesRefillIfLow(tradeRemote, partnerName, targetPlayer, "watcher")
+        end
+    end)
+    dprint("✅ Rubles refill watcher started")
+end
+local function startVaultLoop()
+    task.spawn(function()
+        dprint("🏦 Vault loop started")
+        while not isShutdown do
+            task.wait(SpeedConfig.VaultLoopInterval)
+            if not invStatusLabel then continue end
+            if not vaultTransferring then continue end
+            local backpackInv, vaultInv
+            local ok, err = pcall(function()
+                local backpackConfig = getActiveBackpackConfig()
+                backpackInv = RS.Players[LP.Name].Inventory[backpackConfig.invPath].Inventory
+                local player = RS.Players[LP.Name]
+                if player:FindFirstChild("VaultStorage") then
+                    vaultInv = player.VaultStorage.Inventory
+                elseif player:FindFirstChild("Vault") then
+                    vaultInv = player.Vault.Inventory
+                elseif player.Inventory:FindFirstChild("Vault") then
+                    vaultInv = player.Inventory.Vault.Inventory
+                else
+                    local children = {}
+                    for _, c in ipairs(player:GetChildren()) do
+                        table.insert(children, c.Name)
+                    end
+                    dprint("⚠ Vault not found. Player children:", table.concat(children, ", "))
+                end
+            end)
+            if not ok then
+                dprint("❌ Vault loop path error:", tostring(err))
+                vaultTransferring = false
+                continue
+            end
+            if not backpackInv then
+                dprint("❌ backpackInv is nil")
+                vaultTransferring = false
+                continue
+            end
+            if not vaultInv then
+                vaultTransferring = false
+                continue
+            end
+            local selectedContext = getSelectedInventoryContext()
+            local selectedItemName = selectedContext and selectedContext.item and selectedContext.item.Name or automationState.selectedItemName
+            if not selectedItemName or selectedItemName == "" then
+                vaultTransferring = false
+                continue
+            end
+            local stackLimit = getItemStackLimit(selectedItemName)
+            local vaultItems = {}
+            for _, item in ipairs(backpackInv:GetChildren()) do
+                if item.Name == selectedItemName and getItemAmount(item) >= stackLimit then
+                    table.insert(vaultItems, item)
+                end
+            end
+            local rublesCount = #vaultItems
+            dprint("🏦 Vault loop: found", rublesCount, "full Rubles stacks in backpack")
+            if rublesCount == 0 then
+                vaultTransferring = false
+                continue
+            end
+            local backpackConfig = getActiveBackpackConfig()
+            local neededStacks = backpackConfig.vaultMoveAt
+            if rublesCount < neededStacks then
+                vaultTransferring = false
+                invStatusLabel.Text = "Waiting " .. rublesCount .. "/" .. neededStacks
+                invStatusLabel.TextColor3 = Color3.fromRGB(200, 200, 80)
+                continue
+            end
+            vaultTransferring = true
+            local occupiedSlots = {}
+            for _, item in ipairs(vaultInv:GetChildren()) do
+                local s = item:GetAttribute("Slot")
+                if s then occupiedSlots[s] = true end
+            end
+            local containerIndex = 1
+            local moves = {}
+            for _, item in ipairs(vaultItems) do
+                if isShutdown then break end
+                local srcSlot = item:GetAttribute("Slot")
+                if not srcSlot then
+                    dprint("⚠ Rubles item has no Slot attribute, skipping")
+                    continue
+                end
+                while containerIndex <= 195 do
+                    if not occupiedSlots["Container" .. containerIndex] then break end
+                    containerIndex = containerIndex + 1
+                end
+                if containerIndex > 195 then
+                    invStatusLabel.Text = "Vault full"
+                    invStatusLabel.TextColor3 = Color3.fromRGB(240, 80, 80)
+                    dprint("⚠ Vault full at container", containerIndex)
+                    break
+                end
+                local destSlot = "Container" .. containerIndex
+                occupiedSlots[destSlot] = true
+                containerIndex = containerIndex + 1
+                table.insert(moves, { src = srcSlot, dest = destSlot })
+            end
+            local moved = #moves
+            invStatusLabel.Text = "Moving " .. moved
+            dprint("⚡ Firing", moved, "vault moves simultaneously")
+            for _, mv in ipairs(moves) do
+                task.spawn(function()
+                    local ok, err = pcall(function()
+                        InventoryMoveRemote:FireServer(mv.src, mv.dest, backpackInv, vaultInv, nil)
+                    end)
+                    if not ok then dprint("❌ InventoryMove failed:", tostring(err)) end
+                end)
+            end
+            vaultTransferring = false
+            dprint("✅ Vault cycle done — moved", moved, "stacks")
+            invStatusLabel.Text = "Moved " .. moved
+            invStatusLabel.TextColor3 = Color3.fromRGB(130, 145, 180)
+            if moved > 0 and runInventoryMove and not isShutdown then
+                dprint("🔄 Auto-triggering Run Inventory Move after vault cycle...")
+                task.wait(0)
+                task.spawn(runInventoryMove)
+            end
+        end
+        dprint("🛑 Vault loop stopped.")
+    end)
+end
+setupAutoTradeAcceptor = function()
+    autoAcceptEnabled = true
+    keepTradeMenuHidden(10)
+    local notificationEvent = NotificationEvent
+    local tradeRemote       = TradeRemote
+    local acceptBusy  = false
+    local lockBusy    = false
+    local confirmBusy = false
+    local function resolveTradePartner(partnerName)
+        if not partnerName or partnerName == "" or partnerName == "EnterUsernameHere" then
+            return nil
+        end
+        local targetPlayer = Players:FindFirstChild(partnerName)
+        if not targetPlayer then
+            local ok, result = pcall(function()
+                return Players:WaitForChild(partnerName, 2)
+            end)
+            if ok then targetPlayer = result end
+        end
+        return targetPlayer
+    end
+    local function resetFlags()
+        acceptBusy  = false
+        lockBusy    = false
+        confirmBusy = false
+        currentTradePartner = nil
+        backpackRublesRefillSentThisTrade = false
+        earliestBackpackRublesRefillAt = 0
+        if invStatusLabel then
+            invStatusLabel.Text = "Waiting"
+            invStatusLabel.TextColor3 = Color3.fromRGB(130, 145, 180)
+        end
+        dprint("🔄 Flags reset - ready for next trade")
+    end
+    local lastInvitePathAccept = 0
+    local function getInviteFolder()
+        local invites = nil
+        local ok = pcall(function()
+            local myRepPlayer = RS.Players:FindFirstChild(LP.Name)
+            if not myRepPlayer then return end
+            local status = myRepPlayer:FindFirstChild("Status")
+            if not status then return end
+            local journey = status:FindFirstChild("Journey")
+            if not journey then return end
+            local trading = journey:FindFirstChild("Trading")
+            if not trading then return end
+            invites = trading:FindFirstChild("Invites")
+        end)
+        if ok then
+            return invites
+        end
+        return nil
+    end
+    local function forceAcceptTradeFromInvitePath(reason)
+        if isShutdown then return false end
+        if not autoAcceptEnabled then return false end
+        local partnerName = invPartnerBox and invPartnerBox.Text or ""
+        if partnerName == "" or partnerName == "EnterUsernameHere" then
+            return false
+        end
+        local invites = getInviteFolder()
+        if not invites then
+            return false
+        end
+        local inviteObj = invites:FindFirstChild(partnerName)
+        if not inviteObj then
+            return false
+        end
+        local now = os.clock()
+        if now - lastInvitePathAccept < 0.06 then
+            return false
+        end
+        lastInvitePathAccept = now
+        local targetPlayer = Players:FindFirstChild(partnerName)
+        if not targetPlayer then
+            local okWait, result = pcall(function()
+                return Players:WaitForChild(partnerName, 0.5)
+            end)
+            if okWait then targetPlayer = result end
+        end
+        if not targetPlayer then
+            dprint("❌ [InvMove] InvitePath force accept target not found:", tostring(partnerName))
+            return false
+        end
+        acceptBusy = true
+        lockBusy = false
+        confirmBusy = false
+        currentTradePartner = targetPlayer
+        backpackRublesRefillSentThisTrade = false
+        dprint("🤝 [InvMove] InvitePath FORCE accept — sending Initiate to:", targetPlayer.Name, "reason:", tostring(reason))
+        if invStatusLabel then
+            invStatusLabel.Text = "Accepting"
+            invStatusLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
+        end
+        keepTradeMenuHidden(3)
+        local success, result = pcall(function()
+            return tradeRemote:InvokeServer({
+                Action = "Initiate",
+                TargetPlayer = targetPlayer
+            })
+        end)
+        if success then
+            dprint("✅ [InvMove] InvitePath force Initiate sent!")
+            if invStatusLabel then
+                invStatusLabel.Text = "Accepted"
+                invStatusLabel.TextColor3 = Color3.fromRGB(100, 220, 130)
+            end
+            earliestBackpackRublesRefillAt = os.clock() + SpeedConfig.InvMoveRefillDelayAfterAccept
+            task.delay(SpeedConfig.InvMoveRefillDelayAfterAccept, function()
+                sendBackpackRublesRefillIfLow(tradeRemote, partnerName, targetPlayer, "invite-path after dupe update")
+            end)
+            return true
+        else
+            dprint("❌ [InvMove] InvitePath force accept failed:", tostring(result))
+            acceptBusy = false
+            currentTradePartner = nil
+            return false
+        end
+    end
+    task.spawn(function()
+        while not isShutdown and autoAcceptEnabled do
+            task.wait(SpeedConfig.InvitePollInterval)
+            forceAcceptTradeFromInvitePath("poll")
+        end
+    end)
+    task.spawn(function()
+        local connectedFolder = nil
+        while not isShutdown and autoAcceptEnabled do
+            local invites = getInviteFolder()
+            if invites and invites ~= connectedFolder then
+                connectedFolder = invites
+                invites.ChildAdded:Connect(function(child)
+                    if isShutdown or not autoAcceptEnabled then return end
+                    local partnerName = invPartnerBox and invPartnerBox.Text or ""
+                    if child and child.Name == partnerName then
+                        task.spawn(function()
+                            forceAcceptTradeFromInvitePath("ChildAdded")
+                        end)
+                    end
+                end)
+            end
+            task.wait(SpeedConfig.InviteFolderRefreshInterval)
+        end
+    end)
+    notificationEvent.OnClientEvent:Connect(function(message, duration, messageType)
+        if isShutdown then return end
+        if not autoAcceptEnabled then return end
+        dprint("📨 [InvMove] Notification:", tostring(message))
+        local partnerName = invPartnerBox and invPartnerBox.Text or ""
+        if partnerName == "" or partnerName == "EnterUsernameHere" then return end
+        task.spawn(function()
+            if isShutdown then return end
+            local messageText = tostring(message or "")
+            local isTradeInvite = messageText:find(partnerName, 1, true) and messageText:find("wants to trade", 1, true)
+            if isTradeInvite then
+                if acceptBusy then return end
+                acceptBusy  = true
+                lockBusy    = false
+                confirmBusy = false
+                backpackRublesRefillSentThisTrade = false
+                currentTradePartner = resolveTradePartner(partnerName)
+                if not currentTradePartner then
+                    dprint("❌ [InvMove] Partner not found for accept:", tostring(partnerName))
+                    resetFlags()
+                    return
+                end
+                if invStatusLabel then
+                    invStatusLabel.Text = "Accepting"
+                    invStatusLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
+                end
+                dprint("🤝 [InvMove] Sending accept Initiate to:", currentTradePartner.Name)
+                keepTradeMenuHidden(3)
+                local success, result = pcall(function()
+                    return tradeRemote:InvokeServer({
+                        Action = "Initiate",
+                        TargetPlayer = currentTradePartner
+                    })
+                end)
+                if success then
+                    dprint("✅ [InvMove] Trade accepted!")
+                    if invStatusLabel then
+                        invStatusLabel.Text = "Accepted"
+                        invStatusLabel.TextColor3 = Color3.fromRGB(100, 220, 130)
+                    end
+                    earliestBackpackRublesRefillAt = os.clock() + SpeedConfig.InvMoveRefillDelayAfterAccept
+                    task.delay(SpeedConfig.InvMoveRefillDelayAfterAccept, function()
+                        local didRefill = sendBackpackRublesRefillIfLow(tradeRemote, partnerName, currentTradePartner, "normal accept after dupe update")
+                        if didRefill and vaultTransferring then
+                            sendPantsRefill(tradeRemote, currentTradePartner)
+                        end
+                    end)
+                else
+                    dprint("❌ [InvMove] Accept failed:", result)
+                    resetFlags()
+                end
+            elseif message and message:find("is waiting for you to offer") then
+                if lockBusy then return end
+                lockBusy = true
+                if not currentTradePartner then
+                    currentTradePartner = resolveTradePartner(partnerName)
+                end
+                if not currentTradePartner then
+                    dprint("❌ [InvMove] Partner not found:", tostring(partnerName))
+                    resetFlags()
+                    return
+                end
+                if invStatusLabel then
+                    invStatusLabel.Text = "Locking"
+                    invStatusLabel.TextColor3 = Color3.fromRGB(255, 200, 100)
+                end
+                task.wait(SpeedConfig.InvMoveLockDelay)
+                if isShutdown then return end
+                keepTradeMenuHidden(2)
+                local success, result = pcall(function()
+                    return tradeRemote:InvokeServer({ Action = "Lock", TargetPlayer = currentTradePartner })
+                end)
+                if success then
+                    dprint("✅ [InvMove] Locked!")
+                    if invStatusLabel then
+                        invStatusLabel.Text = "Locked"
+                        invStatusLabel.TextColor3 = Color3.fromRGB(255, 220, 100)
+                    end
+                    task.delay(SpeedConfig.InvMoveFallbackDelay, function()
+                        if isShutdown then return end
+                        if confirmBusy then return end
+                        if not currentTradePartner then
+                            currentTradePartner = resolveTradePartner(partnerName)
+                        end
+                        if not currentTradePartner then
+                            dprint("❌ [InvMove] Partner not found for fallback confirm:", tostring(partnerName))
+                            return
+                        end
+                        confirmBusy = true
+                        keepTradeMenuHidden(2)
+                        local okConfirm, confirmResult = pcall(function()
+                            return tradeRemote:InvokeServer({
+                                Action = "Confirm",
+                                TargetPlayer = currentTradePartner
+                            })
+                        end)
+                        if okConfirm then
+                            dprint("✅ [InvMove] Fallback Confirm sent!")
+                            if invStatusLabel then
+                                invStatusLabel.Text = "Confirmed"
+                                invStatusLabel.TextColor3 = Color3.fromRGB(100, 255, 150)
+                            end
+                            task.wait(0)
+                            if runInventoryMove and not isShutdown then
+                                dprint("🔄 Triggering inventory move from fallback confirm...")
+                                task.spawn(runInventoryMove)
+                            end
+                            task.wait(SpeedConfig.PostConfirmResetDelay)
+                            resetFlags()
+                        else
+                            dprint("❌ [InvMove] Fallback Confirm failed:", tostring(confirmResult))
+                            confirmBusy = false
+                        end
+                    end)
+                else
+                    dprint("❌ [InvMove] Lock failed:", result)
+                    lockBusy = false
+                end
+            elseif message and (message:find("is waiting for trade confirmation") or message:find("waiting for trade confirmation") or message:find("confirm")) then
+                if confirmBusy then return end
+                confirmBusy = true
+                if not currentTradePartner then
+                    currentTradePartner = resolveTradePartner(partnerName)
+                end
+                if not currentTradePartner then
+                    dprint("❌ [InvMove] Partner not found:", tostring(partnerName))
+                    resetFlags()
+                    return
+                end
+                if invStatusLabel then
+                    invStatusLabel.Text = "Confirming"
+                    invStatusLabel.TextColor3 = Color3.fromRGB(100, 255, 150)
+                end
+                task.wait(SpeedConfig.InvMoveConfirmDelay)
+                if isShutdown then return end
+                keepTradeMenuHidden(2)
+                local success, result = pcall(function()
+                    return tradeRemote:InvokeServer({ Action = "Confirm", TargetPlayer = currentTradePartner })
+                end)
+                if success then
+                    dprint("✅ [InvMove] Confirmed!")
+                    if invStatusLabel then
+                        invStatusLabel.Text = "Complete"
+                        invStatusLabel.TextColor3 = Color3.fromRGB(100, 255, 150)
+                    end
+                    task.wait(0)
+                    if runInventoryMove and not isShutdown then
+                        dprint("🔄 Triggering inventory move...")
+                        task.spawn(runInventoryMove)
+                    end
+                else
+                    dprint("❌ [InvMove] Confirm failed:", result)
+                end
+                task.wait(SpeedConfig.PostConfirmResetDelay)
+                resetFlags()
+            end
+        end)
+    end)
+    setupRublesRefillWatcher()
+    startVaultLoop()
+    dprint("✅ Auto Trade Acceptor listening")
+end
+setupTradeDupeResponder = function()
+    local notificationEvent = NotificationEvent
+    local tradeRemote       = TradeRemote
+    local confirmBusy       = false
+    notificationEvent.OnClientEvent:Connect(function(message)
+        if isShutdown then return end
+        dprint("📨 [TradeDupe] Notification:", tostring(message))
+        local partnerName = tradeDupePartnerBox and tradeDupePartnerBox.Text or ""
+        if partnerName == "" or partnerName == "EnterUsernameHere" then return end
+        if message and message:find(partnerName) and message:find("is waiting for you to offer") then
+            if confirmBusy then return end
+            confirmBusy = true
+            local targetPlayer = Players:FindFirstChild(partnerName)
+            if not targetPlayer then confirmBusy = false return end
+            dprint("✔️ [TradeDupe] Inv Move locked — confirming...")
+            task.spawn(function()
+                task.wait(SpeedConfig.TradeDupeConfirmDelay)
+                if isShutdown then confirmBusy = false return end
+                keepTradeMenuHidden(2)
+                local success, result = pcall(function()
+                    return tradeRemote:InvokeServer({ Action = "Confirm", TargetPlayer = targetPlayer })
+                end)
+                if success then
+                    dprint("✅ [TradeDupe] Confirm sent!")
+                else
+                    dprint("❌ [TradeDupe] Confirm failed:", result)
+                end
+                task.wait(SpeedConfig.TradeDupeResetDelay)
+                confirmBusy = false
+            end)
+        end
+    end)
+    dprint("✅ Trade Dupe auto-responder enabled")
+end
+local startupStarted = false
+local backpackVisibleConnection
+local function beginStartupFromInventory()
+    if startupStarted or isShutdown then
+        return
+    end
+    startupStarted = true
+    if backpackVisibleConnection then
+        backpackVisibleConnection:Disconnect()
+        backpackVisibleConnection = nil
+    end
+    local startupOk2, startupErr2 = pcall(function()
+        waitForTemplateInventoryFrame(6)
+        buildUnifiedHub()
+
+        -- Apply scaling and shrink buttons AFTER building UI
+        scaleInventoryUI()
+        shrinkButtons()
+        hideCloseButton()
+
+        buildInventoryMover()
+        buildTradeExecutor()
+        ensureTradeResponderStarted()
+        keepTradeMenuHidden(999999)
+        pcall(function()
+            RS.SFX.UI.Notifications.Buy.Volume = 0
+        end)
+        pcall(function()
+            RS.SFX.UI.Notifications.Error.Volume = 0
+        end)
+        task.delay(0.12, function()
+            if not isShutdown and isBackpackOpen() then
+                tryForceOpenInventory()
+            end
+        end)
+        task.spawn(function()
+            task.wait(0.1)
+            local hasBackpack = detectActiveBackpack()
+            if hasBackpack then
+                dprint('Inventory found: ' .. getActiveBackpackConfig().invPath)
+                showPage('inventory')
+                ensureInventorySystemsStarted()
+            else
+                dprint('No supported backpack inventory detected')
+                showPage('trade')
+            end
+        end)
+    end)
+    if not startupOk2 then
+        error(startupErr2)
+    end
+end
+task.spawn(function()
+    local startupOk, startupErr = pcall(function()
+    BootstrapFrame.Size = UDim2.new(0, 360, 0, 52)
+    BootstrapFrame.Position = UDim2.new(0.5, -180, 0, 24)
+    BootstrapFrame.BackgroundColor3 = Color3.fromRGB(24, 26, 31)
+    BootstrapLabel.Size = UDim2.new(1, -20, 1, -10)
+    BootstrapLabel.Position = UDim2.new(0, 10, 0, 5)
+    BootstrapLabel.TextWrapped = true
+    BootstrapLabel.TextXAlignment = Enum.TextXAlignment.Left
+    BootstrapLabel.Text = "Opening inventory... if it stays closed, press TAB."
+    if isBackpackOpen() then
+        BootstrapLabel.Text = "Inventory detected. Building interface..."
+        beginStartupFromInventory()
+        BootstrapFrame.Visible = false
+        return
+    end
+    tryForceOpenInventory()
+    local backpackFrame = getBackpackFrame()
+    if backpackFrame then
+        backpackVisibleConnection = backpackFrame:GetPropertyChangedSignal("Visible"):Connect(function()
+            if backpackFrame.Visible then
+                BootstrapLabel.Text = "Inventory detected. Building interface..."
+                beginStartupFromInventory()
+                BootstrapFrame.Visible = false
+            end
+        end)
+    end
+    task.spawn(function()
+        local deadline = os.clock() + 8
+        while not isShutdown and not startupStarted and os.clock() < deadline do
+            if isBackpackOpen() then
+                BootstrapLabel.Text = "Inventory detected. Building interface..."
+                beginStartupFromInventory()
+                BootstrapFrame.Visible = false
+                return
+            end
+            task.wait(0.15)
+        end
+        if not startupStarted and not isShutdown then
+            BootstrapLabel.Text = "Press TAB to open inventory and start."
+        end
+    end)
+end)
+    if not startupOk then
+        local failFrame = Instance.new('Frame')
+        failFrame.Size = UDim2.new(0, 520, 0, 120)
+        failFrame.Position = UDim2.new(0.5, -260, 0.5, -60)
+        failFrame.BackgroundColor3 = Color3.fromRGB(24, 26, 31)
+        failFrame.BorderSizePixel = 0
+        failFrame.Parent = SG
+        corner(failFrame, 8)
+        stroke(failFrame, Color3.fromRGB(120, 60, 60), 1, 0)
+        local failLabel = Instance.new('TextLabel')
+        failLabel.Size = UDim2.new(1, -20, 1, -20)
+        failLabel.Position = UDim2.new(0, 10, 0, 10)
+        failLabel.BackgroundTransparency = 1
+        failLabel.TextWrapped = true
+        failLabel.TextXAlignment = Enum.TextXAlignment.Left
+        failLabel.TextYAlignment = Enum.TextYAlignment.Top
+        failLabel.Font = Enum.Font.Code
+        failLabel.TextSize = 14
+        failLabel.TextColor3 = Color3.fromRGB(255, 210, 210)
+        failLabel.Text = 'Startup failed: ' .. tostring(startupErr)
+        failLabel.Parent = failFrame
+    end
+end)
+-- ============================================================
+-- MOBILE TOGGLE BUTTON – place this at the VERY END of the file
+-- ============================================================
+task.wait(0.5) -- wait for UI to be fully built
+
+if SG and not SG:FindFirstChild("MobileToggle") then
+    local mobileToggle = Instance.new("TextButton")
+    mobileToggle.Name = "MobileToggle"
+    mobileToggle.Size = UDim2.new(0, 60, 0, 60)
+    mobileToggle.Position = UDim2.new(1, -70, 1, -70)   -- bottom-right
+    mobileToggle.AnchorPoint = Vector2.new(1, 1)
+    mobileToggle.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+    mobileToggle.BorderSizePixel = 0
+    mobileToggle.Text = scriptInterfaceVisible and "Hide" or "Show"
+    mobileToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+    mobileToggle.Font = Enum.Font.GothamBold
+    mobileToggle.TextSize = 14
+    mobileToggle.ZIndex = 999999
+    mobileToggle.Parent = SG
+    mobileToggle.AutoButtonColor = false
+
+    pcall(function() corner(mobileToggle, 10) end)
+    pcall(function() stroke(mobileToggle, Color3.fromRGB(100, 100, 120), 1, 0) end)
+
+    mobileToggle.MouseButton1Click:Connect(function()
+        local newState = not scriptInterfaceVisible
+        if manualRoot and manualRoot.Parent then
+            manualRoot.Visible = newState
+        end
+        scriptInterfaceVisible = newState
+        mobileToggle.Text = newState and "Hide" or "Show"
+        pcall(function()
+            UIS.MouseIconEnabled = true
+            UIS.MouseBehavior = Enum.MouseBehavior.Default
+        end)
+    end)
+end
