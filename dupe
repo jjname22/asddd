@@ -1,26 +1,66 @@
 local function scaleInventoryUI()
+    -- Hide the X close button
+pcall(function()
+    if manualInventoryFrame then
+        local modeHost = manualInventoryFrame:FindFirstChild("ToolHubModeHost")
+        if modeHost then
+            for _, btn in ipairs(modeHost:GetDescendants()) do
+                if btn:IsA("TextButton") and btn.Text == "x" then
+                    btn.Visible = false
+                    break
+                end
+            end
+        end
+    end
+end)
     if not manualInventoryFrame then return end
 
-    local viewportX, viewportY = workspace.CurrentCamera.ViewportSize.X, workspace.CurrentCamera.ViewportSize.Y
+    local viewportX = workspace.CurrentCamera.ViewportSize.X
 
-    -- WIDTH: set to 1.0 for full screen width, or 0.98 for a tiny margin
-    local widthScale = 1.0
-    local heightScale = 0.78
-    manualInventoryFrame.Size = UDim2.new(widthScale, 0, heightScale, 0)
-    manualInventoryFrame.Position = UDim2.new((1 - widthScale) / 2, 0, (1 - heightScale) / 2 + 0.03, 0)
+    -- Make the frame WIDE (98% of screen width), but keep height FIXED
+    local widthScale = 0.98
+    local fixedHeight = 500   -- adjust this number to your liking (smaller = less tall)
 
-    -- Scale internal elements (text/buttons) based on width
-    local refW = 900
-    local scale = viewportX / refW
-    scale = math.max(0.6, math.min(1.8, scale))
+    manualInventoryFrame.Size = UDim2.new(widthScale, 0, 0, fixedHeight)
+    manualInventoryFrame.Position = UDim2.new((1 - widthScale) / 2, 0, 0.04, 0)
 
+    -- Remove any UIScale (or set it to 1) – we only want width scaling
     local uiScale = manualInventoryFrame:FindFirstChild("ToolHubUIScale")
-    if not uiScale then
+    if uiScale then
+        uiScale.Scale = 1
+    else
         uiScale = Instance.new("UIScale")
         uiScale.Name = "ToolHubUIScale"
         uiScale.Parent = manualInventoryFrame
+        uiScale.Scale = 1
     end
-    uiScale.Scale = scale
+end
+local function shrinkButtons()
+    if not manualInventoryFrame then return end
+
+    local modeHost = manualInventoryFrame:FindFirstChild("ToolHubModeHost")
+    if not modeHost then return end
+
+    for _, btn in ipairs(modeHost:GetDescendants()) do
+        if btn:IsA("TextButton") then
+            btn.Size = UDim2.new(0, 80, 0, 28)   -- fixed small width, height
+            btn.TextSize = 10
+        end
+    end
+
+    -- Session code box
+    local sessionBox = modeHost:FindFirstChild("TextBox")
+    if sessionBox then
+        sessionBox.Size = UDim2.new(0, 150, 0, 28)
+        sessionBox.TextSize = 10
+    end
+
+    -- Toggle button
+    local toggleBtn = modeHost:FindFirstChild("BridgeToggle")
+    if toggleBtn then
+        toggleBtn.Size = UDim2.new(0, 90, 0, 28)
+        toggleBtn.TextSize = 10
+    end
 end
     local DEBUG_LOGS = false
     local function dprint(...)
@@ -155,20 +195,7 @@ end
         lbl.TextSize          = 15
         lbl.TextXAlignment    = Enum.TextXAlignment.Left
         lbl.Parent            = bar
-        local closeBtn = Instance.new("TextButton")
-        closeBtn.Size            = UDim2.new(0, 28, 0, 28)
-        closeBtn.Position        = UDim2.new(1, -38, 0.5, -14)
-        closeBtn.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
-        closeBtn.Text            = "x"
-        closeBtn.TextColor3      = Color3.fromRGB(255, 255, 255)
-        closeBtn.Font            = Enum.Font.GothamBold
-        closeBtn.TextSize        = 13
-        closeBtn.BorderSizePixel = 0
-        closeBtn.Parent          = bar
-        corner(closeBtn, 6)
-        closeBtn.MouseEnter:Connect(function() closeBtn.BackgroundColor3 = Color3.fromRGB(240, 60, 70) end)
-        closeBtn.MouseLeave:Connect(function() closeBtn.BackgroundColor3 = Color3.fromRGB(200, 60, 60) end)
-        return bar, closeBtn
+    
     end
     local TopTheme = {
         Background = Color3.fromRGB(12, 12, 14),
@@ -2743,30 +2770,20 @@ end
         end)
     end
     local function buildUnifiedHub()
-        function stretchButtons()
-    if not manualInventoryFrame then return end
-
-    -- Get the toolbar rows
-    local modeHost = manualInventoryFrame:FindFirstChild("ToolHubModeHost")
-    if not modeHost then return end
-
-    -- Find the top row and vault row
-    local topRow = modeHost:FindFirstChild("TopRow") -- you may need to assign names
-    local vaultRow = modeHost:FindFirstChild("VaultRow")
-    local bridgeRow = modeHost:FindFirstChild("BridgeRow")
-
-    -- If you didn't name them, find by position or use :GetChildren() loop
-    -- But we can just iterate all children and adjust buttons
-
-    for _, child in ipairs(modeHost:GetDescendants()) do
-        if child:IsA("TextButton") then
-            -- Make the button's width relative to its parent's width
-            local parentWidth = child.Parent and child.Parent.AbsoluteSize.X or 200
-            child.Size = UDim2.new(0.45, 0, 0, child.Size.Y.Offset) -- 45% of parent width
-            child.TextSize = 11 -- keep text size as is or scale based on viewport
+        -- Hide the X close button
+pcall(function()
+    if manualInventoryFrame then
+        local modeHost = manualInventoryFrame:FindFirstChild("ToolHubModeHost")
+        if modeHost then
+            for _, btn in ipairs(modeHost:GetDescendants()) do
+                if btn:IsA("TextButton") and btn.Text == "x" then
+                    btn.Visible = false
+                    break
+                end
+            end
         end
     end
-end
+end)
         SG.Enabled = true
         if BootstrapFrame then
             BootstrapFrame.Visible = false
@@ -2896,49 +2913,7 @@ end
         modePrompt.TextStrokeTransparency = 1
         modePrompt.ZIndex = 10021
         modePrompt.Parent = topRow
-        local hostCloseButton = Instance.new("TextButton")
-        hostCloseButton.Size = UDim2.new(0, 28, 0, 28)
-        hostCloseButton.Position = UDim2.new(1, -28, 0.5, -14)
-        hostCloseButton.BackgroundColor3 = TopTheme.Element
-        hostCloseButton.BorderSizePixel = 0
-        hostCloseButton.Text = ""
-        hostCloseButton.TextColor3 = TopTheme.Text
-        hostCloseButton.Font = Enum.Font.GothamBold
-        hostCloseButton.TextSize = 15
-        hostCloseButton.TextStrokeTransparency = 1
-        hostCloseButton.ZIndex = 10022
-        hostCloseButton.Parent = topRow
-        corner(hostCloseButton, 7)
-        stroke(hostCloseButton, TopTheme.Outline, 1, 0)
-        local closeIcon = Instance.new("ImageLabel")
-        closeIcon.Size = UDim2.new(0, 11, 0, 11)
-        closeIcon.Position = UDim2.new(0.5, -5, 0.5, -5)
-        closeIcon.BackgroundTransparency = 1
-        closeIcon.Image = "rbxassetid://130510492706892"
-        closeIcon.ImageColor3 = TopTheme.Text
-        closeIcon.ImageTransparency = 0.3
-        closeIcon.ZIndex = 10023
-        closeIcon.Parent = hostCloseButton
-        local closeGlow = Instance.new("Frame")
-        closeGlow.Size = UDim2.new(0, 0, 0, 0)
-        closeGlow.Position = UDim2.new(0.5, 0, 0.5, 0)
-        closeGlow.AnchorPoint = Vector2.new(0.5, 0.5)
-        closeGlow.BackgroundColor3 = TopTheme.Accent
-        closeGlow.BackgroundTransparency = 1
-        closeGlow.BorderSizePixel = 0
-        closeGlow.ZIndex = 10022
-        closeGlow.Parent = hostCloseButton
-        corner(closeGlow, 7)
-        applyVerticalAccentGradient(closeGlow)
-        hostCloseButton.MouseEnter:Connect(function()
-            closeGlow:TweenSize(UDim2.new(1, 0, 1, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.2, true)
-            closeGlow.BackgroundTransparency = 0
-        end)
-        hostCloseButton.MouseLeave:Connect(function()
-            closeGlow:TweenSize(UDim2.new(0, 0, 0, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.2, true)
-            closeGlow.BackgroundTransparency = 1
-        end)
-        hostCloseButton.MouseButton1Click:Connect(shutdown)
+        
         local roleHost = Instance.new("Frame")
         roleHost.Size = UDim2.new(0, 180, 0, 32)
         roleHost.Position = UDim2.new(0, 118, 0, 0)
