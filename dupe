@@ -1,32 +1,4 @@
 
--- ======================================
--- SIMPLE HARDCODED KEY CHECK
--- ======================================
-local key = "nigger"
--- List of valid keys (add/remove any you want)
-local valid_keys = {
-    "X7F2-9K4M-3P8Q-1R5T",
-    "A3B6-C8D2-E9F4-G1H7",
-    "L5N9-P2Q6-R3S8-T7U4",
-}
-
--- THIS is the variable you asked for. Change this to test different keys.
-
--- Check if the key is valid
-local valid = false
-for _, v in ipairs(valid_keys) do
-    if v == key then
-        valid = true
-        break
-    end
-end
-
--- Show result
-if valid then
-    print("✅ KEY IS VALID - Access granted")
-else
-    print("❌ KEY IS INVALID - Access denied")
-end
 local DEBUG_LOGS = false
 local function dprint(...)
     if DEBUG_LOGS then
