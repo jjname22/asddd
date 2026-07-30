@@ -413,20 +413,6 @@ local function titleBar(parent, title, titleColor, barColor)
     lbl.TextSize          = 15
     lbl.TextXAlignment    = Enum.TextXAlignment.Left
     lbl.Parent            = bar
-    local closeBtn = Instance.new("TextButton")
-    closeBtn.Size            = UDim2.new(0, 28, 0, 28)
-    closeBtn.Position        = UDim2.new(1, -38, 0.5, -14)
-    closeBtn.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
-    closeBtn.Text            = "x"
-    closeBtn.TextColor3      = Color3.fromRGB(255, 255, 255)
-    closeBtn.Font            = Enum.Font.GothamBold
-    closeBtn.TextSize        = 13
-    closeBtn.BorderSizePixel = 0
-    closeBtn.Parent          = bar
-    corner(closeBtn, 6)
-    closeBtn.MouseEnter:Connect(function() closeBtn.BackgroundColor3 = Color3.fromRGB(240, 60, 70) end)
-    closeBtn.MouseLeave:Connect(function() closeBtn.BackgroundColor3 = Color3.fromRGB(200, 60, 60) end)
-    return bar, closeBtn
 end
 local TopTheme = {
     Background = Color3.fromRGB(12, 12, 14),
@@ -3183,49 +3169,6 @@ local function buildUnifiedHub()
     modePrompt.TextStrokeTransparency = 1
     modePrompt.ZIndex = 10021
     modePrompt.Parent = topRow
-    local hostCloseButton = Instance.new("TextButton")
-    hostCloseButton.Size = UDim2.new(0, 28, 0, 28)
-    hostCloseButton.Position = UDim2.new(1, -28, 0.5, -14)
-    hostCloseButton.BackgroundColor3 = TopTheme.Element
-    hostCloseButton.BorderSizePixel = 0
-    hostCloseButton.Text = ""
-    hostCloseButton.TextColor3 = TopTheme.Text
-    hostCloseButton.Font = Enum.Font.GothamBold
-    hostCloseButton.TextSize = 15
-    hostCloseButton.TextStrokeTransparency = 1
-    hostCloseButton.ZIndex = 10022
-    hostCloseButton.Parent = topRow
-    corner(hostCloseButton, 7)
-    stroke(hostCloseButton, TopTheme.Outline, 1, 0)
-    local closeIcon = Instance.new("ImageLabel")
-    closeIcon.Size = UDim2.new(0, 11, 0, 11)
-    closeIcon.Position = UDim2.new(0.5, -5, 0.5, -5)
-    closeIcon.BackgroundTransparency = 1
-    closeIcon.Image = "rbxassetid://130510492706892"
-    closeIcon.ImageColor3 = TopTheme.Text
-    closeIcon.ImageTransparency = 0.3
-    closeIcon.ZIndex = 10023
-    closeIcon.Parent = hostCloseButton
-    local closeGlow = Instance.new("Frame")
-    closeGlow.Size = UDim2.new(0, 0, 0, 0)
-    closeGlow.Position = UDim2.new(0.5, 0, 0.5, 0)
-    closeGlow.AnchorPoint = Vector2.new(0.5, 0.5)
-    closeGlow.BackgroundColor3 = TopTheme.Accent
-    closeGlow.BackgroundTransparency = 1
-    closeGlow.BorderSizePixel = 0
-    closeGlow.ZIndex = 10022
-    closeGlow.Parent = hostCloseButton
-    corner(closeGlow, 7)
-    applyVerticalAccentGradient(closeGlow)
-    hostCloseButton.MouseEnter:Connect(function()
-        closeGlow:TweenSize(UDim2.new(1, 0, 1, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.2, true)
-        closeGlow.BackgroundTransparency = 0
-    end)
-    hostCloseButton.MouseLeave:Connect(function()
-        closeGlow:TweenSize(UDim2.new(0, 0, 0, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.2, true)
-        closeGlow.BackgroundTransparency = 1
-    end)
-    hostCloseButton.MouseButton1Click:Connect(shutdown)
     local roleHost = Instance.new("Frame")
     roleHost.Size = UDim2.new(0, 180, 0, 32)
     roleHost.Position = UDim2.new(0, 118, 0, 0)
